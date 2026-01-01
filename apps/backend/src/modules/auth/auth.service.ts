@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { HashUtil } from '../../common/utils/hash.util';
 
 @Injectable()
 export class AuthService {
@@ -33,10 +34,19 @@ export class AuthService {
   }
 
   async login(credentials: { email: string; password: string }) {
-    // Mock login - will be implemented with real bcrypt later
     const user = await this.usersService.findByEmail(credentials.email);
 
-    if (!user) {
+    if (!user || !user.password) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Vérifier le mot de passe avec bcrypt
+    const isPasswordValid = await HashUtil.compare(
+      credentials.password,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 

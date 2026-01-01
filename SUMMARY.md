@@ -1,4 +1,16 @@
-# 🎉 Projet Comhotel - Configuration Terminée
+# 🎉 Projet ComHotel - Version 1.1
+
+**Date**: 2026-01-01
+**Version**: v1.1 (Security Fix - Login Authentication)
+**Dépôt GitHub**: https://github.com/Rafikisan78/comhotel
+**Statut**: ✅ Déployé sur GitHub
+
+## 🔐 Nouveautés v1.1 (2026-01-01)
+- ✅ **[SÉCURITÉ CRITIQUE]** Correction authentification login
+- ✅ Ajout vérification mot de passe avec bcrypt lors du login
+- ✅ +7 tests automatisés pour la sécurité du login
+- ✅ Protection contre bypass d'authentification
+- ✅ Rapport d'audit de sécurité complet (`SECURITY_AUDIT_REPORT.md`)
 
 ## ✅ Ce qui a été créé
 
@@ -77,13 +89,51 @@ Le projet **Comhotel** a été configuré avec succès avec une architecture mon
 - SUMMARY.md (ce fichier)
 - 5 fichiers dans docs/
 
+## 🎯 État Actuel du Projet (v1.0)
+
+### ✅ Fonctionnalités Implémentées
+
+#### Backend (NestJS)
+- ✅ Module d'authentification (JWT)
+  - Enregistrement utilisateur avec validation
+  - Login avec génération de token JWT
+  - Hashage sécurisé des mots de passe (bcrypt)
+- ✅ Module utilisateurs
+  - CRUD complet avec Supabase
+  - Gestion des rôles (guest, hotel_owner, admin)
+  - Validation des données (class-validator)
+- ✅ Intégration Supabase
+  - Base de données PostgreSQL
+  - Configuration Row Level Security (RLS)
+- ✅ Configuration CORS pour le frontend
+- ✅ Validation globale des DTOs
+
+#### Frontend (Next.js)
+- ✅ Page d'inscription fonctionnelle
+  - Formulaire avec validation côté client
+  - Intégration API backend
+  - Gestion des erreurs
+- ✅ Page de connexion
+- ✅ Page de récupération de mot de passe
+- ✅ Configuration API client (Axios)
+  - Intercepteurs pour authentification
+  - Gestion automatique des tokens JWT
+- ✅ Fichier .env.local configuré
+
+#### Infrastructure
+- ✅ Dépôt Git initialisé
+- ✅ Code versionné sur GitHub
+- ✅ Fichier .gitignore protégeant les secrets
+- ✅ Script de redémarrage serveurs (restart-servers.bat)
+- ✅ Configuration Git pour Windows (CRLF)
+
 ## 🚀 Prochaines Étapes
 
-### Phase 1 - Installation et Configuration (30 min)
-1. ✅ Installer les dépendances : `npm install`
-2. ✅ Configurer les variables d'environnement (.env)
-3. ✅ Démarrer Supabase local : `npm run supabase:start`
-4. ✅ Lancer le projet : `npm run dev`
+### Phase 1 - Tests et Validation ✅ COMPLÉTÉE
+1. ✅ Installer les dépendances
+2. ✅ Configurer les variables d'environnement
+3. ✅ Tester l'enregistrement utilisateur
+4. ✅ Versionner le code sur GitHub
 
 ### Phase 2 - Développement Backend (2-3 jours)
 1. 🔲 Compléter les DTOs manquants
@@ -186,39 +236,93 @@ Le projet **Comhotel** a été configuré avec succès avec une architecture mon
 
 ## 📞 Commandes Utiles
 
+### Développement
 ```bash
+# Redémarrer les serveurs (Script Windows)
+restart-servers.bat         # Tue et redémarre frontend + backend
+
+# Développement manuel
+cd apps/backend && npm run dev      # Backend sur http://localhost:3001
+cd apps/frontend && npm run dev     # Frontend sur http://localhost:3000
+
 # Installation
-npm install
+npm install                         # Installer toutes les dépendances
+```
 
-# Développement
-npm run dev                 # Frontend + Backend
-npm run dev:frontend        # Frontend uniquement
-npm run dev:backend         # Backend uniquement
+### Git & Versioning
+```bash
+# Voir l'historique
+git log --oneline
 
-# Tests
+# Créer un commit
+git add .
+git commit -m "Description des changements"
+git push
+
+# Créer une nouvelle branche
+git checkout -b feature/nom-feature
+
+# Revenir à master
+git checkout master
+
+# Créer un tag de version
+git tag -a v1.1 -m "Description version"
+git push --tags
+
+# Annuler le dernier commit (garde les changements)
+git reset --soft HEAD~1
+
+# Voir les différences
+git diff
+```
+
+### Tests
+```bash
 npm test                    # Tous les tests
 npm run test:watch          # Mode watch
 npm run test:coverage       # Coverage
+```
 
-# Build
+### Build
+```bash
 npm run build               # Build tout
 npm run build:frontend      # Build frontend
 npm run build:backend       # Build backend
-
-# Supabase
-npm run supabase:start      # Démarrer local
-npm run supabase:stop       # Arrêter
-npm run supabase:reset      # Réinitialiser
 ```
 
 ## 🎊 Conclusion
 
-Votre projet **Comhotel** est maintenant **100% configuré** et prêt pour le développement !
+Votre projet **ComHotel v1.0** est maintenant **versioning sur GitHub** et fonctionnel !
 
-Tous les fichiers de base, la documentation, la structure des modules, et les configurations sont en place.
+### ✅ Réalisations v1.0
+- Architecture monorepo complète
+- Authentification backend/frontend opérationnelle
+- Intégration Supabase fonctionnelle
+- Code sécurisé et versionné sur GitHub
+- Script de redémarrage automatique
+- Documentation complète
 
-**Vous pouvez maintenant commencer à coder les fonctionnalités !** 🚀
+### 🔐 Sécurité
+- Fichiers `.env` et `.env.local` exclus de Git
+- Clés secrètes protégées
+- Hashage bcrypt des mots de passe
+- Configuration CORS sécurisée
+
+### 📈 Prochaine Version (v1.1)
+Suggestions pour la prochaine itération:
+1. Compléter les modules Hotels et Rooms
+2. Ajouter la recherche d'hôtels
+3. Implémenter le système de réservation
+4. Intégrer les paiements Stripe
+5. Créer l'interface admin
+
+### 📚 Ressources
+- **GitHub**: https://github.com/Rafikisan78/comhotel
+- **Documentation Git**: Voir ci-dessus "Git & Versioning"
+- **Architecture**: Voir ARCHITECTURE_BUILD.md
+- **API**: Voir docs/api.md
 
 ---
 
+**Projet initialisé avec succès le 2026-01-01** 🎉
 **Bon développement !** 💪

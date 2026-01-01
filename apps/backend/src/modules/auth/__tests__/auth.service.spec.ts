@@ -1,9 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../auth.service';
 import { UsersService } from '../../users/users.service';
 import { CreateUserDto, UserRole } from '../../users/dto/create-user.dto';
+import { HashUtil } from '../../../common/utils/hash.util';
+
+// Mock HashUtil
+jest.mock('../../../common/utils/hash.util');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -140,6 +144,132 @@ describe('AuthService', () => {
         sub: '123',
         email: 'test@example.com',
       });
+    });
+  });
+
+  describe('login', () => {
+    const mockUser = {
+      id: 'user-123',
+      email: 'test@example.com',
+      password: '$2b$10$hashedPasswordExample',
+      firstName: 'John',
+      lastName: 'Doe',
+      role: UserRole.GUEST,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('devrait connecter un utilisateur avec les bons identifiants', async () => {
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser);
+      (HashUtil.compare as jest.Mock).mockResolvedValue(true);
+
+      const result = await service.login({
+        email: 'test@example.com',
+        password: 'correctPassword',
+      });
+
+      expect(result).toBeDefined();
+      expect(result.user).toEqual(mockUser);
+      expect(result.accessToken).toBe('mock_jwt_token');
+      expect(usersService.findByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(HashUtil.compare).toHaveBeenCalledWith(
+        'correctPassword',
+        '$2b$10$hashedPasswordExample',
+      );
+    });
+
+    it('devrait lever une UnauthorizedException avec un mauvais mot de passe', async () => {
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser);
+      (HashUtil.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        service.login({
+          email: 'test@example.com',
+          password: 'wrongPassword',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(HashUtil.compare).toHaveBeenCalledWith(
+        'wrongPassword',
+        '$2b$10$hashedPasswordExample',
+      );
+    });
+
+    it('devrait lever une UnauthorizedException avec un email inexistant', async () => {
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
+
+      await expect(
+        service.login({
+          email: 'nonexistent@example.com',
+          password: 'anyPassword',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(usersService.findByEmail).toHaveBeenCalledWith('nonexistent@example.com');
+      expect(HashUtil.compare).not.toHaveBeenCalled();
+    });
+
+    it('devrait lever une UnauthorizedException avec un mot de passe vide', async () => {
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser);
+      (HashUtil.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        service.login({
+          email: 'test@example.com',
+          password: '',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(HashUtil.compare).toHaveBeenCalledWith(
+        '',
+        '$2b$10$hashedPasswordExample',
+      );
+    });
+
+    it('devrait générer un JWT avec userId et email après login réussi', async () => {
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(mockUser);
+      (HashUtil.compare as jest.Mock).mockResolvedValue(true);
+
+      await service.login({
+        email: 'test@example.com',
+        password: 'correctPassword',
+      });
+
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        sub: 'user-123',
+        email: 'test@example.com',
+      });
+    });
+
+    it('ne devrait PAS appeler HashUtil.compare si utilisateur inexistant', async () => {
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(null);
+
+      await expect(
+        service.login({
+          email: 'nonexistent@example.com',
+          password: 'anyPassword',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(HashUtil.compare).not.toHaveBeenCalled();
+    });
+
+    it('devrait lever une UnauthorizedException si user.password est undefined', async () => {
+      const userWithoutPassword = { ...mockUser, password: undefined };
+      jest.spyOn(usersService, 'findByEmail').mockResolvedValue(userWithoutPassword);
+
+      await expect(
+        service.login({
+          email: 'test@example.com',
+          password: 'anyPassword',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(HashUtil.compare).not.toHaveBeenCalled();
     });
   });
 });

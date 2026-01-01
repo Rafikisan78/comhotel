@@ -1,4 +1,9 @@
-# 📋 Résumé de l'Implémentation - Création de Compte Utilisateur
+# 📋 Résumé de l'Implémentation - ComHotel v1.0
+
+**Version:** v1.0 (Initial Release)
+**Date:** 2026-01-01
+**Dépôt GitHub:** https://github.com/Rafikisan78/comhotel
+**Statut:** ✅ Versionné et déployé sur GitHub
 
 ## ✅ Fonctionnalité Complétée: 1.1 Création de Compte Utilisateur
 
@@ -52,7 +57,8 @@ async create(createUserDto: CreateUserDto): Promise<User> {
 - ✅ Validation des champs requis (email, password, firstName, lastName)
 - ✅ Génération de token JWT avec userId et email
 - ✅ Typage strict avec `CreateUserDto`
-- ✅ Correction de la méthode `login()` pour inclure l'email dans le token
+- ✅ **[SÉCURITÉ] Vérification du mot de passe avec bcrypt lors du login** (v1.1 - 2026-01-01)
+- ✅ Import de `HashUtil` pour la comparaison sécurisée des mots de passe
 
 **Code clé:**
 ```typescript
@@ -72,6 +78,31 @@ async register(createUserDto: CreateUserDto) {
   const accessToken = this.generateToken(user.id, user.email);
 
   return { user, accessToken };
+}
+
+async login(credentials: { email: string; password: string }) {
+  const user = await this.usersService.findByEmail(credentials.email);
+
+  if (!user || !user.password) {
+    throw new UnauthorizedException('Invalid credentials');
+  }
+
+  // ✅ NOUVEAU: Vérification du mot de passe avec bcrypt
+  const isPasswordValid = await HashUtil.compare(
+    credentials.password,
+    user.password,
+  );
+
+  if (!isPasswordValid) {
+    throw new UnauthorizedException('Invalid credentials');
+  }
+
+  const token = this.generateToken(user.id, user.email);
+
+  return {
+    user,
+    accessToken: token,
+  };
 }
 
 private generateToken(userId: string, email: string): string {
@@ -133,21 +164,28 @@ private generateToken(userId: string, email: string): string {
 - **Edge cases (4 tests)**: valeurs longues, caractères spéciaux, double soumission
 
 #### 7. [auth.service.spec.ts](apps/backend/src/modules/auth/__tests__/auth.service.spec.ts)
-**Tests authentification: 6/6 ✅**
-- Enregistrement utilisateur avec succès
-- Validation champs manquants (email, password, firstName, lastName)
-- Génération token JWT avec id et email
+**Tests authentification: 13/13 ✅** (v1.1 - 2026-01-01)
+- ✅ Enregistrement utilisateur avec succès
+- ✅ Validation champs manquants (email, password, firstName, lastName)
+- ✅ Génération token JWT avec id et email
+- ✅ **[NOUVEAU] Login avec bons identifiants**
+- ✅ **[NOUVEAU] Login échoue avec mauvais mot de passe**
+- ✅ **[NOUVEAU] Login échoue avec email inexistant**
+- ✅ **[NOUVEAU] Login échoue avec mot de passe vide**
+- ✅ **[NOUVEAU] JWT généré après login réussi**
+- ✅ **[NOUVEAU] HashUtil.compare non appelé si user inexistant**
+- ✅ **[NOUVEAU] Échoue si user.password est undefined**
 
 ---
 
 ## 📊 Résultats Finaux
 
-### Tests
+### Tests (v1.1 - 2026-01-01)
 ```
 Test Suites: 3 passed, 3 total
-Tests:       48 passed, 48 total
+Tests:       55 passed, 55 total (+7 tests login)
 Snapshots:   0 total
-Time:        6.793 s
+Time:        ~5 s
 ```
 
 ### Couverture Fonctionnelle
@@ -179,6 +217,12 @@ Time:        6.793 s
 4. **JWT sécurisé**
    - Token contient userId et email
    - Signé avec secret JWT
+
+5. **✅ [v1.1 - 2026-01-01] Authentification sécurisée**
+   - Vérification du mot de passe avec `HashUtil.compare()` lors du login
+   - Protection contre bypass d'authentification
+   - Validation que user.password existe avant comparaison
+   - Messages d'erreur génériques pour ne pas révéler si l'email existe
 
 ---
 
@@ -251,5 +295,58 @@ Fonctionnalités à implémenter:
 
 ---
 
-**Date de complétion:** 2025-12-30
-**Statut:** ✅ Fonctionnalité complète et validée
+## 🔄 Git & Versioning
+
+### Commits Réalisés
+- ✅ **Initial commit - ComHotel v1.0** (fe61f6b)
+  - 189 fichiers versionnés
+  - 24,585 lignes de code
+  - Architecture complète backend + frontend
+  - Authentification fonctionnelle
+  - Documentation complète
+
+### Branches
+- ✅ **master** - Branche principale (stable)
+
+### Protection des Secrets
+- ✅ `.gitignore` configuré pour exclure:
+  - `apps/backend/.env` (clés Supabase, JWT secret)
+  - `apps/frontend/.env.local` (clés publiques Supabase)
+  - `node_modules/`
+  - `dist/`, `.next/`
+
+### Configuration Git
+- ✅ Utilisateur: Rafikisan78 (rfateh@gmail.com)
+- ✅ Configuration CRLF pour Windows (core.autocrlf=true)
+- ✅ Remote origin: https://github.com/Rafikisan78/comhotel.git
+
+---
+
+## 🛠️ Infrastructure et Outils
+
+### Scripts Créés
+1. **restart-servers.bat** - Redémarrage automatique des serveurs
+   - Tue les processus sur ports 3000 et 3001
+   - Redémarre backend puis frontend dans des fenêtres séparées
+
+### Configuration Environnements
+- ✅ **Backend (.env)**
+  - JWT_SECRET configuré
+  - SUPABASE_URL et clé service_role
+  - PORT=3001
+  - CORS configuré pour localhost:3000
+
+- ✅ **Frontend (.env.local)** ⚠️ Créé pendant cette session
+  - NEXT_PUBLIC_API_URL=http://localhost:3001
+  - NEXT_PUBLIC_SUPABASE_URL et ANON_KEY
+
+### Serveurs Fonctionnels
+- ✅ Backend NestJS sur http://localhost:3001
+- ✅ Frontend Next.js sur http://localhost:3000
+- ✅ Communication API opérationnelle
+- ✅ CORS configuré correctement
+
+---
+
+**Date de complétion:** 2026-01-01
+**Statut:** ✅ Fonctionnalité complète, testée et versionnée sur GitHub
