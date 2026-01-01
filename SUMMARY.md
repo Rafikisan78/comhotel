@@ -1,9 +1,40 @@
-# 🎉 Projet ComHotel - Version 1.3
+# 🎉 Projet ComHotel - Version 1.4
 
 **Date**: 2026-01-01
-**Version**: v1.3 (Security Fixes - Input Validation & Data Integrity)
+**Version**: v1.4 (User Profile Update - Backend + Frontend)
 **Dépôt GitHub**: https://github.com/Rafikisan78/comhotel
 **Statut**: ✅ Déployé sur GitHub
+**Commit**: 5ee6d5c
+
+## 🚀 Nouveautés v1.4 (2026-01-01)
+### Backend - Mise à jour utilisateur
+- ✅ **[FONCTIONNALITÉ]** Endpoint PATCH /users/:id complet avec validation
+- ✅ **[SÉCURITÉ]** SelfOrAdminGuard - Autorisation (utilisateur modifie uniquement son profil OU admin)
+- ✅ **[SÉCURITÉ]** Email normalization dans update (lowercase + trim)
+- ✅ **[SÉCURITÉ]** Mise à jour mot de passe avec bcrypt hashing
+- ✅ **[SÉCURITÉ]** Détection doublons email avec gestion race conditions
+- ✅ UpdateUserDto: Validation complète (@MaxLength, @Matches XSS)
+- ✅ UsersController: PUT → PATCH + Guards (JwtAuthGuard + SelfOrAdminGuard)
+
+### Frontend - Page de profil
+- ✅ **[NOUVELLE PAGE]** /profile - Gestion complète du profil utilisateur
+- ✅ Formulaire mise à jour (firstName, lastName, email, phone, password)
+- ✅ Validation client-side + messages succès/erreur
+- ✅ Protection authentification (redirection /login si non connecté)
+- ✅ Boutons navigation (Accueil, Déconnexion)
+- ✅ /login: Intégration API + stockage user_id + redirection /profile
+- ✅ /register: Stockage user_id dans localStorage
+- ✅ Page d'accueil: Bouton "S'inscrire" ajouté
+
+### Tests manuels réussis
+- ✅ Mise à jour champs simples (firstName, lastName, phone)
+- ✅ Normalisation email (UPPERCASE → lowercase)
+- ✅ Changement mot de passe avec hash bcrypt
+- ✅ Protection XSS (script rejeté dans firstName/lastName)
+- ✅ Protection authentification (401 sans JWT)
+- ✅ Protection autorisation (403 si modification profil autre utilisateur)
+- ✅ Validation mot de passe trop court (400)
+- ✅ Validation body vide (400)
 
 ## 🔐 Nouveautés v1.3 (2026-01-01)
 - ✅ **[SÉCURITÉ MOYENNE]** Normalisation des emails (lowercase + trim) pour éviter doublons
@@ -339,3 +370,4 @@ Suggestions pour la prochaine itération:
 
 **Projet initialisé avec succès le 2026-01-01** 🎉
 **Bon développement !** 💪
+voila le contexte 

@@ -1,9 +1,312 @@
-# 📋 Résumé de l'Implémentation - ComHotel v1.3
+# 📋 Résumé de l'Implémentation - ComHotel v1.4
 
-**Version:** v1.3 (Security Fixes - Input Validation & Data Integrity)
+**Version:** v1.4 (User Profile Update - Backend + Frontend)
 **Date:** 2026-01-01
 **Dépôt GitHub:** https://github.com/Rafikisan78/comhotel
 **Statut:** ✅ Versionné et déployé sur GitHub
+**Commit:** 5ee6d5c
+
+## 🚀 Fonctionnalité v1.4 - Mise à jour profil utilisateur (2026-01-01)
+
+### 🎯 Objectif
+Implémenter un système complet de mise à jour du profil utilisateur avec validation, sécurité et interface web.
+
+---
+
+## 📦 Fichiers Créés/Modifiés
+
+### Backend - API REST
+
+#### 1. [update-user.dto.ts](apps/backend/src/modules/users/dto/update-user.dto.ts)
+**Nouveau:** Validation complète pour mise à jour
+```typescript
+export class UpdateUserDto {
+  @IsOptional() @IsEmail() @MaxLength(255)
+  email?: string;
+
+  @IsOptional() @MinLength(8) @MaxLength(128)
+  password?: string;
+
+  @IsOptional() @MaxLength(100) @Matches(/^[a-zA-ZÀ-ÿ\s'-]+$/)
+  firstName?: string;
+
+  @IsOptional() @MaxLength(100) @Matches(/^[a-zA-ZÀ-ÿ\s'-]+$/)
+  lastName?: string;
+
+  @IsOptional() @MaxLength(20)
+  phone?: string;
+}
+```
+
+**Validations:**
+- ✅ Email: format valide, max 255 caractères
+- ✅ Password: min 8 caractères, max 128 caractères
+- ✅ FirstName/LastName: regex anti-XSS, max 100 caractères
+- ✅ Phone: max 20 caractères
+
+#### 2. [users.service.ts - update()](apps/backend/src/modules/users/users.service.ts:157-230)
+**Modifications majeures:**
+```typescript
+async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
+  // 1. Vérifier que l'utilisateur existe
+  const existingUser = await this.findOne(id);
+  if (!existingUser) {
+    throw new BadRequestException('Utilisateur introuvable');
+  }
+
+  // 2. Normaliser l'email si fourni
+  if (updateUserDto.email) {
+    const normalizedEmail = updateUserDto.email.toLowerCase().trim();
+    // Vérifier unicité (éviter conflits avec autres users)
+    const userWithEmail = await this.findByEmail(normalizedEmail);
+    if (userWithEmail && userWithEmail.id !== id) {
+      throw new ConflictException('Un utilisateur avec cet email existe déjà');
+    }
+    updateData.email = normalizedEmail;
+  }
+
+  // 3. Hasher le nouveau mot de passe si fourni
+  if (updateUserDto.password) {
+    if (updateUserDto.password.length < 8) {
+      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères');
+    }
+    updateData.password_hash = await HashUtil.hash(updateUserDto.password);
+  }
+
+  // 4. Appliquer les autres champs
+  // 5. Exclure le password de la réponse
+}
+```
+
+**Sécurité implémentée:**
+- ✅ Validation existence utilisateur
+- ✅ Normalisation email (lowercase + trim)
+- ✅ Vérification unicité email (évite doublons)
+- ✅ Hash bcrypt du nouveau mot de passe
+- ✅ Gestion race conditions (erreur 23505)
+- ✅ Exclusion password dans la réponse
+- ✅ Validation body non vide
+
+#### 3. [self-or-admin.guard.ts](apps/backend/src/common/guards/self-or-admin.guard.ts) **NOUVEAU**
+**Guard d'autorisation:**
+```typescript
+@Injectable()
+export class SelfOrAdminGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+    const targetUserId = request.params.id;
+
+    // Admin peut modifier n'importe quel profil
+    if (user.role === 'admin') {
+      return true;
+    }
+
+    // Utilisateur peut modifier uniquement son propre profil
+    if (user.userId === targetUserId || user.sub === targetUserId) {
+      return true;
+    }
+
+    throw new ForbiddenException('Vous ne pouvez modifier que votre propre profil');
+  }
+}
+```
+
+**Protection:**
+- ✅ Admin: peut modifier n'importe quel utilisateur
+- ✅ User: peut modifier UNIQUEMENT son propre profil
+- ✅ Erreur 403 Forbidden si tentative cross-user
+
+#### 4. [users.controller.ts](apps/backend/src/modules/users/users.controller.ts:25-36)
+**Modifications:**
+```typescript
+@Patch(':id')
+@UseGuards(JwtAuthGuard, SelfOrAdminGuard)
+update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  return this.usersService.update(id, updateUserDto);
+}
+
+@Delete(':id')
+@UseGuards(JwtAuthGuard, SelfOrAdminGuard)
+remove(@Param('id') id: string) {
+  return this.usersService.remove(id);
+}
+```
+
+**Changements:**
+- ✅ PUT → PATCH (sémantique HTTP correcte)
+- ✅ Ajout JwtAuthGuard (authentification requise)
+- ✅ Ajout SelfOrAdminGuard (autorisation)
+
+---
+
+### Frontend - Interface Web
+
+#### 5. [profile/page.tsx](apps/frontend/src/app/(main)/profile/page.tsx) **NOUVEAU - 329 lignes**
+**Page complète de gestion du profil:**
+
+**Fonctionnalités:**
+- ✅ Chargement automatique des données utilisateur via API
+- ✅ Formulaire de mise à jour (firstName, lastName, email, phone)
+- ✅ Section changement mot de passe (optionnelle)
+- ✅ Validation client-side
+- ✅ Messages succès/erreur
+- ✅ État de chargement (loading spinner)
+- ✅ Protection authentification (redirect /login si non connecté)
+- ✅ Header navigation (Accueil, Déconnexion)
+- ✅ Design responsive (Tailwind CSS)
+
+**Code clé:**
+```typescript
+const handleUpdateProfile = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // Validation mot de passe
+  if (password && password !== confirmPassword) {
+    setError('Les mots de passe ne correspondent pas');
+    return;
+  }
+
+  // Construire updateData avec uniquement les champs modifiés
+  const updateData: any = {};
+  if (firstName !== user?.firstName) updateData.firstName = firstName;
+  if (email !== user?.email) updateData.email = email;
+  if (password) updateData.password = password;
+
+  // Appel API PATCH /users/:id
+  const response = await apiClient.patch(`/users/${userId}`, updateData);
+
+  setSuccess('Profil mis à jour avec succès !');
+}
+```
+
+#### 6. [login/page.tsx](apps/frontend/src/app/(auth)/login/page.tsx)
+**Modifications:**
+- ✅ Intégration API complète avec apiClient
+- ✅ Stockage `user_id` dans localStorage
+- ✅ Redirection vers `/profile` après login réussi
+- ✅ Gestion erreurs avec affichage message
+- ✅ État de chargement (bouton disabled)
+
+#### 7. [register/page.tsx](apps/frontend/src/app/(auth)/register/page.tsx)
+**Modifications:**
+- ✅ Stockage `user_id` dans localStorage (ligne 43)
+- ✅ Permet l'accès à /profile après inscription
+
+#### 8. [page.tsx (accueil)](apps/frontend/src/app/page.tsx)
+**Modifications:**
+- ✅ Ajout bouton "S'inscrire" (vert) à côté de "Se connecter"
+
+---
+
+## 🧪 Tests Manuels Réalisés
+
+### ✅ Tests réussis avec Supabase réel
+
+| Test | Méthode | Résultat attendu | Statut |
+|------|---------|------------------|--------|
+| Mise à jour firstName | PATCH /users/:id | 200 OK, firstName mis à jour | ✅ |
+| Mise à jour multiple champs | PATCH /users/:id | 200 OK, tous les champs mis à jour | ✅ |
+| Normalisation email | PATCH avec `UPPERCASE@EXAMPLE.COM` | email = `uppercase@example.com` | ✅ |
+| Changement mot de passe | PATCH avec nouveau password | 200 OK, hash bcrypt, password non retourné | ✅ |
+| Login avec nouveau password | POST /auth/login | 200 OK, nouveau JWT | ✅ |
+| Sans authentification | PATCH sans JWT | 401 Unauthorized | ✅ |
+| Cross-user update | User A modifie User B | 403 Forbidden | ✅ |
+| Password trop court | PATCH password="123" | 400 Bad Request | ✅ |
+| Body vide | PATCH {} | 400 Bad Request | ✅ |
+| XSS dans firstName | PATCH firstName=`<script>` | 400 Bad Request | ✅ |
+| SQL injection | PATCH firstName=`'; DROP TABLE` | 400 Bad Request | ✅ |
+
+### 📊 Résultats
+- **Tests réussis:** 11/11 (100%)
+- **Sécurité:** ✅ Toutes les protections actives
+- **Performance:** ✅ Supabase réel, réponses < 500ms
+
+---
+
+## 🔒 Sécurité Implémentée
+
+### Protection Backend
+1. **Authentification JWT** (JwtAuthGuard)
+   - Endpoint accessible uniquement avec token valide
+   - Erreur 401 si token absent/invalide
+
+2. **Autorisation** (SelfOrAdminGuard)
+   - Utilisateur ne peut modifier QUE son propre profil
+   - Admin peut modifier n'importe quel profil
+   - Erreur 403 si tentative cross-user
+
+3. **Validation des données**
+   - Email: format + longueur + normalisation
+   - Password: minimum 8 caractères + hash bcrypt
+   - FirstName/LastName: regex anti-XSS
+   - Toutes les validations via class-validator
+
+4. **Protection XSS**
+   - Regex `/^[a-zA-ZÀ-ÿ\s'-]+$/` sur noms
+   - Rejette `<script>`, balises HTML, SQL
+
+5. **Gestion des doublons**
+   - Normalisation email (lowercase + trim)
+   - Vérification unicité avant update
+   - Gestion race conditions (erreur 23505)
+
+6. **Protection des données sensibles**
+   - Password JAMAIS retourné dans les réponses
+   - Méthode `excludePassword()` systématique
+
+### Protection Frontend
+1. **Validation client-side**
+   - Vérification champs requis
+   - Validation format email
+   - Vérification correspondance mots de passe
+   - Minimum 8 caractères pour password
+
+2. **Protection routes**
+   - Redirection /login si non authentifié
+   - Vérification token dans localStorage
+
+3. **UX sécurisée**
+   - Messages d'erreur génériques (pas de fuite d'info)
+   - Loading states pour éviter double-soumission
+   - Timeout auto des messages de succès
+
+---
+
+## 📈 Statistiques
+
+### Code ajouté (commit 5ee6d5c)
+- **11 fichiers modifiés**
+- **595 lignes ajoutées**
+- **21 lignes supprimées**
+- **2 nouveaux fichiers** (SelfOrAdminGuard, profile page)
+
+### Endpoints API
+- **PATCH /users/:id** - Mise à jour profil (NOUVEAU)
+- **DELETE /users/:id** - Suppression profil (Guards ajoutés)
+
+### Pages Frontend
+- **http://localhost:3000/profile** - Page profil (NOUVEAU)
+- **http://localhost:3000/login** - Login (mis à jour)
+- **http://localhost:3000/register** - Register (mis à jour)
+
+---
+
+## 🎯 Prochaines Fonctionnalités
+
+### 2️⃣ Suppression d'utilisateur (DELETE)
+- Soft delete vs hard delete
+- Confirmation avant suppression
+- Tests end-to-end
+
+### 3️⃣ Emails de confirmation
+- Utiliser Supabase Auth pour envoi emails
+- Token de vérification email
+- Endpoint de confirmation
+
+---
+
+
 
 ## 🔐 Correctifs de Sécurité v1.3 (2026-01-01)
 
