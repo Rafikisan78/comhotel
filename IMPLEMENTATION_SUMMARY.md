@@ -1,9 +1,57 @@
-# 📋 Résumé de l'Implémentation - ComHotel v1.0
+# 📋 Résumé de l'Implémentation - ComHotel v1.2
 
-**Version:** v1.0 (Initial Release)
+**Version:** v1.2 (Security Fixes - Authentication & Data Exposure)
 **Date:** 2026-01-01
 **Dépôt GitHub:** https://github.com/Rafikisan78/comhotel
 **Statut:** ✅ Versionné et déployé sur GitHub
+
+## 🔐 Correctifs de Sécurité v1.2 (2026-01-01)
+
+### Criticité #2 - Exposition du Password Hash (Commit: c65300a)
+**Problème:** Le hash bcrypt du mot de passe était retourné dans les réponses des endpoints:
+- POST /auth/login
+- GET /users
+- GET /users/:id
+
+**Solution implémentée:**
+1. **Ajout méthode `excludePassword()` dans UsersService** ([users.service.ts:13-16](apps/backend/src/modules/users/users.service.ts#L13-L16))
+   ```typescript
+   private excludePassword(user: User): Omit<User, 'password'> {
+     const { password, ...userWithoutPassword } = user;
+     return userWithoutPassword as Omit<User, 'password'>;
+   }
+   ```
+
+2. **Application dans tous les endpoints publics:**
+   - `findAll()` - Liste des utilisateurs
+   - `findOne()` - Détails d'un utilisateur
+   - `update()` - Mise à jour utilisateur
+   - `login()` dans auth.service.ts - Connexion
+
+3. **Conservation du password dans `findByEmail()`** pour usage interne par l'authentification
+
+**Tests ajoutés:**
+- Vérification que `password === undefined` dans la réponse de login ([auth.service.spec.ts:174](apps/backend/src/modules/auth/__tests__/auth.service.spec.ts#L174))
+
+**Impact sécurité:** 🔴 **CRITIQUE** → ✅ **RÉSOLU**
+- Empêche les attaques offline par brute force sur les hashs exposés
+- Conforme OWASP A01:2021 - Broken Access Control
+
+---
+
+## 🔐 Correctifs de Sécurité v1.1 (2026-01-01)
+
+### Criticité #1 - Login sans Vérification Mot de Passe (Commit: 92bab51)
+**Problème:** La méthode login() ne vérifiait pas le mot de passe, permettant un bypass complet de l'authentification.
+
+**Solution implémentée:**
+- Ajout vérification bcrypt avec `HashUtil.compare()` dans auth.service.ts
+- Protection contre user.password undefined
+- Messages d'erreur génériques pour éviter énumération d'emails
+
+**Tests ajoutés:** +7 tests pour login sécurisé
+
+---
 
 ## ✅ Fonctionnalité Complétée: 1.1 Création de Compte Utilisateur
 
@@ -24,6 +72,7 @@ Implémenter un système complet de création de compte utilisateur avec validat
 - ✅ Hash sécurisé du mot de passe avec `HashUtil` (bcrypt)
 - ✅ Exclusion du mot de passe dans la réponse
 - ✅ Utilisation de `UserRole.GUEST` comme rôle par défaut
+- ✅ **[v1.2 - SÉCURITÉ] Méthode `excludePassword()` pour filtrer le password de toutes les réponses publiques**
 
 **Code clé:**
 ```typescript
@@ -57,8 +106,9 @@ async create(createUserDto: CreateUserDto): Promise<User> {
 - ✅ Validation des champs requis (email, password, firstName, lastName)
 - ✅ Génération de token JWT avec userId et email
 - ✅ Typage strict avec `CreateUserDto`
-- ✅ **[SÉCURITÉ] Vérification du mot de passe avec bcrypt lors du login** (v1.1 - 2026-01-01)
+- ✅ **[v1.1 - SÉCURITÉ] Vérification du mot de passe avec bcrypt lors du login**
 - ✅ Import de `HashUtil` pour la comparaison sécurisée des mots de passe
+- ✅ **[v1.2 - SÉCURITÉ] Exclusion du password dans la réponse de login()**
 
 **Code clé:**
 ```typescript
@@ -164,26 +214,30 @@ private generateToken(userId: string, email: string): string {
 - **Edge cases (4 tests)**: valeurs longues, caractères spéciaux, double soumission
 
 #### 7. [auth.service.spec.ts](apps/backend/src/modules/auth/__tests__/auth.service.spec.ts)
-**Tests authentification: 13/13 ✅** (v1.1 - 2026-01-01)
+**Tests authentification: 13/13 ✅** (v1.2 - 2026-01-01)
 - ✅ Enregistrement utilisateur avec succès
 - ✅ Validation champs manquants (email, password, firstName, lastName)
 - ✅ Génération token JWT avec id et email
-- ✅ **[NOUVEAU] Login avec bons identifiants**
-- ✅ **[NOUVEAU] Login échoue avec mauvais mot de passe**
-- ✅ **[NOUVEAU] Login échoue avec email inexistant**
-- ✅ **[NOUVEAU] Login échoue avec mot de passe vide**
-- ✅ **[NOUVEAU] JWT généré après login réussi**
-- ✅ **[NOUVEAU] HashUtil.compare non appelé si user inexistant**
-- ✅ **[NOUVEAU] Échoue si user.password est undefined**
+- ✅ **[v1.1] Login avec bons identifiants**
+- ✅ **[v1.1] Login échoue avec mauvais mot de passe**
+- ✅ **[v1.1] Login échoue avec email inexistant**
+- ✅ **[v1.1] Login échoue avec mot de passe vide**
+- ✅ **[v1.1] JWT généré après login réussi**
+- ✅ **[v1.1] HashUtil.compare non appelé si user inexistant**
+- ✅ **[v1.1] Échoue si user.password est undefined**
+- ✅ **[v1.2] Password ne doit PAS être retourné dans login response**
 
 ---
 
 ## 📊 Résultats Finaux
 
-### Tests (v1.1 - 2026-01-01)
+### Tests (v1.2 - 2026-01-01)
 ```
 Test Suites: 3 passed, 3 total
-Tests:       55 passed, 55 total (+7 tests login)
+Tests:       55 passed, 55 total
+  - v1.0: 48 tests initiaux
+  - v1.1: +7 tests login sécurisé
+  - v1.2: +1 test password exclusion (modifié test existant)
 Snapshots:   0 total
 Time:        ~5 s
 ```
@@ -206,7 +260,8 @@ Time:        ~5 s
    - Aucun stockage en clair
 
 2. **Exclusion données sensibles**
-   - Le mot de passe n'est jamais retourné dans les réponses API
+   - **[v1.2]** Le mot de passe n'est jamais retourné dans les réponses API publiques
+   - **[v1.2]** Méthode `excludePassword()` appliquée à tous les endpoints GET
    - Messages d'erreur sans fuite d'information
 
 3. **Validation stricte**

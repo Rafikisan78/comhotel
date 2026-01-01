@@ -36,6 +36,7 @@ export class UsersService {
     const hashedPassword = await HashUtil.hash(createUserDto.password);
 
     // Créer l'utilisateur dans Supabase
+    // SÉCURITÉ: Le rôle est forcé à 'guest' pour empêcher l'injection de rôle
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('users')
@@ -45,7 +46,7 @@ export class UsersService {
         first_name: createUserDto.firstName,
         last_name: createUserDto.lastName,
         phone: createUserDto.phone,
-        role: createUserDto.role || UserRole.GUEST,
+        role: UserRole.GUEST,
       })
       .select()
       .single();

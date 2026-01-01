@@ -29,7 +29,6 @@ describe('UsersService', () => {
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
-        role: UserRole.GUEST,
       };
 
       const result = await service.create(createUserDto);
@@ -51,7 +50,6 @@ describe('UsersService', () => {
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
-        role: UserRole.GUEST,
       };
 
       await service.create(createUserDto);
@@ -65,7 +63,6 @@ describe('UsersService', () => {
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
-        role: UserRole.GUEST,
       };
 
       await service.create(createUserDto);
@@ -81,7 +78,6 @@ describe('UsersService', () => {
         password: 'short',
         firstName: 'John',
         lastName: 'Doe',
-        role: UserRole.GUEST,
       };
 
       await expect(service.create(createUserDto)).rejects.toThrow(
@@ -110,7 +106,6 @@ describe('UsersService', () => {
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
-        role: UserRole.GUEST,
       };
 
       await service.create(createUserDto);

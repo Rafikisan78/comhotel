@@ -46,7 +46,6 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
-        role: UserRole.GUEST,
       };
 
       const mockUser = {
@@ -123,7 +122,6 @@ describe('AuthService', () => {
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
-        role: UserRole.GUEST,
       };
 
       const mockUser = {
@@ -144,6 +142,32 @@ describe('AuthService', () => {
         sub: '123',
         email: 'test@example.com',
       });
+    });
+
+    it('devrait créer un utilisateur avec le rôle "guest" par défaut (protection contre injection de rôle)', async () => {
+      const createUserDto: CreateUserDto = {
+        email: 'test@example.com',
+        password: 'password123',
+        firstName: 'John',
+        lastName: 'Doe',
+      };
+
+      const mockUser = {
+        id: '123',
+        email: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        role: UserRole.GUEST,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      jest.spyOn(usersService, 'create').mockResolvedValue(mockUser);
+
+      const result = await service.register(createUserDto);
+
+      expect(result.user.role).toBe(UserRole.GUEST);
+      expect(usersService.create).toHaveBeenCalledWith(createUserDto);
     });
   });
 

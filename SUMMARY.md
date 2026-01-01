@@ -1,9 +1,15 @@
-# 🎉 Projet ComHotel - Version 1.1
+# 🎉 Projet ComHotel - Version 1.2
 
 **Date**: 2026-01-01
-**Version**: v1.1 (Security Fix - Login Authentication)
+**Version**: v1.2 (Security Fixes - Authentication & Data Exposure)
 **Dépôt GitHub**: https://github.com/Rafikisan78/comhotel
 **Statut**: ✅ Déployé sur GitHub
+
+## 🔐 Nouveautés v1.2 (2026-01-01)
+- ✅ **[SÉCURITÉ CRITIQUE]** Correction exposition du password hash dans les réponses API
+- ✅ Ajout méthode excludePassword() pour filtrer les données sensibles
+- ✅ Protection de tous les endpoints users (GET /users, GET /users/:id, POST /login)
+- ✅ +1 test automatisé pour vérifier non-exposition du password
 
 ## 🔐 Nouveautés v1.1 (2026-01-01)
 - ✅ **[SÉCURITÉ CRITIQUE]** Correction authentification login
