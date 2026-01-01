@@ -1,0 +1,74 @@
+name: CD - Déploiement Continu
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Déployer sur Coolify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build applications
+        run: npm run build
+
+      - name: Deploy Backend to Coolify
+        run: |
+          curl -X POST "${{ secrets.COOLIFY_BACKEND_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "branch": "main",
+              "commit": "${{ github.sha }}"
+            }'
+
+      - name: Deploy Frontend to Coolify
+        run: |
+          curl -X POST "${{ secrets.COOLIFY_FRONTEND_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "branch": "main",
+              "commit": "${{ github.sha }}"
+            }'
+
+      - name: Wait for deployment
+        run: sleep 30
+
+      - name: Health check Backend
+        run: |
+          curl -f "${{ secrets.BACKEND_URL }}/health" || exit 1
+
+      - name: Health check Frontend
+        run: |
+          curl -f "${{ secrets.FRONTEND_URL }}" || exit 1
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Déploiement réussi!"
+          echo "Backend: ${{ secrets.BACKEND_URL }}"
+          echo "Frontend: ${{ secrets.FRONTEND_URL }}"
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "❌ Le déploiement a échoué"
+          exit 1

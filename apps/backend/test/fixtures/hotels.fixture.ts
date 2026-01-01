@@ -1,0 +1,17 @@
+export const mockHotel = {
+  id: '223e4567-e89b-12d3-a456-426614174000',
+  name: 'Grand Hotel Paris',
+  description: 'Luxurious hotel in the heart of Paris',
+  address: '123 Champs-Élysées',
+  city: 'Paris',
+  country: 'France',
+  zipCode: '75008',
+  latitude: 48.8566,
+  longitude: 2.3522,
+  starRating: 5,
+  images: ['hotel1.jpg', 'hotel2.jpg'],
+  amenities: ['wifi', 'parking', 'pool'],
+  ownerId: '123e4567-e89b-12d3-a456-426614174001',
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+};
