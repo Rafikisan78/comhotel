@@ -22,6 +22,12 @@ export default function HomePage() {
             >
               Se connecter
             </a>
+            <a
+              href="/register"
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition"
+            >
+              S'inscrire
+            </a>
           </div>
         </div>
       </div>

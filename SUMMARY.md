@@ -1,9 +1,16 @@
-# 🎉 Projet ComHotel - Version 1.2
+# 🎉 Projet ComHotel - Version 1.3
 
 **Date**: 2026-01-01
-**Version**: v1.2 (Security Fixes - Authentication & Data Exposure)
+**Version**: v1.3 (Security Fixes - Input Validation & Data Integrity)
 **Dépôt GitHub**: https://github.com/Rafikisan78/comhotel
 **Statut**: ✅ Déployé sur GitHub
+
+## 🔐 Nouveautés v1.3 (2026-01-01)
+- ✅ **[SÉCURITÉ MOYENNE]** Normalisation des emails (lowercase + trim) pour éviter doublons
+- ✅ **[SÉCURITÉ MOYENNE]** Protection XSS via validation stricte firstName/lastName
+- ✅ **[SÉCURITÉ MOYENNE]** Gestion correcte des race conditions sur email unique
+- ✅ Ajout limitations de longueur (MaxLength) sur tous les champs
+- ✅ Validation par regex des noms (lettres, espaces, tirets, apostrophes uniquement)
 
 ## 🔐 Nouveautés v1.2 (2026-01-01)
 - ✅ **[SÉCURITÉ CRITIQUE]** Correction exposition du password hash dans les réponses API

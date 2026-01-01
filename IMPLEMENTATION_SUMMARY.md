@@ -1,9 +1,94 @@
-# 📋 Résumé de l'Implémentation - ComHotel v1.2
+# 📋 Résumé de l'Implémentation - ComHotel v1.3
 
-**Version:** v1.2 (Security Fixes - Authentication & Data Exposure)
+**Version:** v1.3 (Security Fixes - Input Validation & Data Integrity)
 **Date:** 2026-01-01
 **Dépôt GitHub:** https://github.com/Rafikisan78/comhotel
 **Statut:** ✅ Versionné et déployé sur GitHub
+
+## 🔐 Correctifs de Sécurité v1.3 (2026-01-01)
+
+### Criticité #4 - Normalisation d'Email Manquante (Commit: TBD)
+**Problème:** `Test@EXAMPLE.COM` et `test@example.com` étaient traités comme des emails différents
+- Permet la création de comptes dupliqués
+- Bypass de la contrainte UNIQUE
+- Problèmes d'UX (utilisateur ne peut pas se connecter)
+
+**Solution implémentée:**
+1. **Normalisation dans `create()`** ([users.service.ts:25](apps/backend/src/modules/users/users.service.ts#L25))
+   ```typescript
+   const normalizedEmail = createUserDto.email.toLowerCase().trim();
+   ```
+
+2. **Normalisation dans `findByEmail()`** ([users.service.ts:119](apps/backend/src/modules/users/users.service.ts#L119))
+   ```typescript
+   const normalizedEmail = email.toLowerCase().trim();
+   ```
+
+**Impact sécurité:** 🟠 **MOYEN** → ✅ **RÉSOLU**
+- Empêche la création de doublons avec casse différente
+- Uniformisation de la recherche d'utilisateurs
+
+---
+
+### Criticité #5 - XSS via firstName et lastName (Commit: TBD)
+**Problème:** Aucune validation du format, accepte `<script>alert('XSS')</script>`
+- Risque XSS stocké si affiché sans échappement côté frontend
+- Violation OWASP A03:2021 - Injection
+
+**Solution implémentée:**
+1. **Ajout validation regex dans CreateUserDto** ([create-user.dto.ts:21-23](apps/backend/src/modules/users/dto/create-user.dto.ts#L21-L23))
+   ```typescript
+   @Matches(/^[a-zA-ZÀ-ÿ\s'-]+$/, {
+     message: 'Le prénom ne peut contenir que des lettres, espaces, tirets et apostrophes',
+   })
+   ```
+
+2. **Application sur firstName et lastName**
+   - N'accepte que: lettres (a-z, A-Z, caractères accentués), espaces, tirets, apostrophes
+   - Rejette: `<script>`, balises HTML, caractères spéciaux
+
+**Impact sécurité:** 🟠 **MOYEN** → ✅ **RÉSOLU**
+- Protection contre XSS stocké
+- Validation stricte des données utilisateur
+
+---
+
+### Criticité #6 - Race Condition sur Email Unique (Commit: TBD)
+**Problème:** Deux requêtes simultanées peuvent créer 2 comptes avec le même email
+- Fenêtre de vulnérabilité entre `findByEmail()` et `insert()`
+
+**Solution implémentée:**
+1. **Gestion erreur contrainte UNIQUE** ([users.service.ts:59-61](apps/backend/src/modules/users/users.service.ts#L59-L61))
+   ```typescript
+   if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
+     throw new ConflictException('Un utilisateur avec cet email existe déjà');
+   }
+   ```
+
+**Impact sécurité:** 🟠 **MOYEN** → ✅ **RÉSOLU**
+- S'appuie sur la contrainte UNIQUE de Supabase
+- Gestion propre des erreurs de duplication
+
+---
+
+### Criticité #7 - Limitations de Longueur Manquantes (Commit: TBD)
+**Problème:** Aucune validation `@MaxLength()` permettant:
+- Email de 1000 caractères
+- Mot de passe de 10000 caractères (DoS via bcrypt)
+- Saturation base de données
+
+**Solution implémentée:**
+1. **Ajout `@MaxLength()` dans CreateUserDto** ([create-user.dto.ts](apps/backend/src/modules/users/dto/create-user.dto.ts))
+   - Email: 255 caractères max
+   - Password: 128 caractères max
+   - FirstName/LastName: 100 caractères max
+   - Phone: 20 caractères max
+
+**Impact sécurité:** 🟡 **FAIBLE** → ✅ **RÉSOLU**
+- Protection contre DoS via bcrypt sur mots de passe très longs
+- Prévention saturation base de données
+
+---
 
 ## 🔐 Correctifs de Sécurité v1.2 (2026-01-01)
 

@@ -38,8 +38,9 @@ export default function RegisterPage() {
       const { confirmPassword, ...registrationData } = formData
       const response = await apiClient.post('/auth/register', registrationData)
 
-      // Stocker le token
+      // Stocker le token et l'ID utilisateur
       localStorage.setItem('access_token', response.data.accessToken)
+      localStorage.setItem('user_id', response.data.user.id)
 
       // Rediriger vers la page d'accueil
       router.push('/')

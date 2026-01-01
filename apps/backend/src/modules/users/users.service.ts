@@ -21,8 +21,11 @@ export class UsersService {
       throw new BadRequestException('L\'email est requis');
     }
 
+    // SÉCURITÉ: Normaliser l'email (lowercase + trim) pour éviter les doublons
+    const normalizedEmail = createUserDto.email.toLowerCase().trim();
+
     // Vérifier si l'utilisateur existe déjà
-    const existingUser = await this.findByEmail(createUserDto.email);
+    const existingUser = await this.findByEmail(normalizedEmail);
     if (existingUser) {
       throw new ConflictException('Un utilisateur avec cet email existe déjà');
     }
@@ -41,7 +44,7 @@ export class UsersService {
     const { data, error } = await supabase
       .from('users')
       .insert({
-        email: createUserDto.email,
+        email: normalizedEmail,
         password_hash: hashedPassword,
         first_name: createUserDto.firstName,
         last_name: createUserDto.lastName,
@@ -52,6 +55,10 @@ export class UsersService {
       .single();
 
     if (error) {
+      // SÉCURITÉ: Gérer proprement l'erreur de duplication (race condition)
+      if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
+        throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      }
       throw new BadRequestException(`Erreur lors de la création de l'utilisateur: ${error.message}`);
     }
 
@@ -122,11 +129,14 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
+    // SÉCURITÉ: Normaliser l'email pour la recherche
+    const normalizedEmail = email.toLowerCase().trim();
+
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('email', email)
+      .eq('email', normalizedEmail)
       .single();
 
     if (error || !data) return null;
@@ -145,12 +155,45 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
-    const supabase = this.supabaseService.getClient();
+    // Vérifier que l'utilisateur existe
+    const existingUser = await this.findOne(id);
+    if (!existingUser) {
+      throw new BadRequestException('Utilisateur introuvable');
+    }
 
+    const supabase = this.supabaseService.getClient();
     const updateData: any = {};
-    if (updateUserDto.firstName) updateData.first_name = updateUserDto.firstName;
-    if (updateUserDto.lastName) updateData.last_name = updateUserDto.lastName;
-    if (updateUserDto.phone) updateData.phone = updateUserDto.phone;
+
+    // Gérer la mise à jour de l'email avec normalisation et vérification unicité
+    if (updateUserDto.email) {
+      const normalizedEmail = updateUserDto.email.toLowerCase().trim();
+
+      // Vérifier que le nouvel email n'est pas déjà utilisé par un autre utilisateur
+      const userWithEmail = await this.findByEmail(normalizedEmail);
+      if (userWithEmail && userWithEmail.id !== id) {
+        throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      }
+
+      updateData.email = normalizedEmail;
+    }
+
+    // Gérer la mise à jour du mot de passe avec hashage
+    if (updateUserDto.password) {
+      if (updateUserDto.password.length < 8) {
+        throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères');
+      }
+      updateData.password_hash = await HashUtil.hash(updateUserDto.password);
+    }
+
+    // Gérer les autres champs
+    if (updateUserDto.firstName !== undefined) updateData.first_name = updateUserDto.firstName;
+    if (updateUserDto.lastName !== undefined) updateData.last_name = updateUserDto.lastName;
+    if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
+
+    // Si aucun champ à mettre à jour
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestException('Aucune donnée à mettre à jour');
+    }
 
     const { data, error } = await supabase
       .from('users')
@@ -159,7 +202,17 @@ export class UsersService {
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      // Gérer l'erreur de duplication d'email
+      if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
+        throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      }
+      throw new BadRequestException(`Erreur lors de la mise à jour: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new BadRequestException('Échec de la mise à jour');
+    }
 
     const user: User = {
       id: data.id,
