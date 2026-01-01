@@ -9,6 +9,12 @@ import { SupabaseService } from '../../common/database/supabase.service';
 export class UsersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
+  // Méthode utilitaire pour exclure le mot de passe des réponses
+  private excludePassword(user: User): Omit<User, 'password'> {
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword as Omit<User, 'password'>;
+  }
+
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Valider l'email
     if (!createUserDto.email || createUserDto.email.trim() === '') {
@@ -73,17 +79,20 @@ export class UsersService {
       throw new BadRequestException(`Erreur lors de la récupération des utilisateurs: ${error.message}`);
     }
 
-    return data.map((row) => ({
-      id: row.id,
-      email: row.email,
-      password: row.password_hash,
-      firstName: row.first_name,
-      lastName: row.last_name,
-      phone: row.phone,
-      role: row.role,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
-    }));
+    return data.map((row) => {
+      const user: User = {
+        id: row.id,
+        email: row.email,
+        password: row.password_hash,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        phone: row.phone,
+        role: row.role,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+      };
+      return this.excludePassword(user) as User;
+    });
   }
 
   async findOne(id: string): Promise<User | null> {
@@ -96,7 +105,7 @@ export class UsersService {
 
     if (error || !data) return null;
 
-    return {
+    const user: User = {
       id: data.id,
       email: data.email,
       password: data.password_hash,
@@ -107,6 +116,8 @@ export class UsersService {
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
+
+    return this.excludePassword(user) as User;
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -149,7 +160,7 @@ export class UsersService {
 
     if (error || !data) return null;
 
-    return {
+    const user: User = {
       id: data.id,
       email: data.email,
       password: data.password_hash,
@@ -160,6 +171,8 @@ export class UsersService {
       createdAt: new Date(data.created_at),
       updatedAt: new Date(data.updated_at),
     };
+
+    return this.excludePassword(user) as User;
   }
 
   async remove(id: string): Promise<boolean> {

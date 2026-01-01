@@ -173,7 +173,9 @@ describe('AuthService', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.user).toEqual(mockUser);
+      expect(result.user.email).toBe(mockUser.email);
+      expect(result.user.id).toBe(mockUser.id);
+      expect((result.user as any).password).toBeUndefined(); // Password ne doit PAS être retourné
       expect(result.accessToken).toBe('mock_jwt_token');
       expect(usersService.findByEmail).toHaveBeenCalledWith('test@example.com');
       expect(HashUtil.compare).toHaveBeenCalledWith(

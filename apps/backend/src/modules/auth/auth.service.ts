@@ -52,8 +52,11 @@ export class AuthService {
 
     const token = this.generateToken(user.id, user.email);
 
+    // Exclure le mot de passe de la réponse
+    const { password, ...userWithoutPassword } = user;
+
     return {
-      user,
+      user: userWithoutPassword,
       accessToken: token,
     };
   }
