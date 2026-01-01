@@ -235,4 +235,203 @@ export class UsersService {
 
     return !error;
   }
+
+  /**
+   * Soft delete: Mark user as deleted without removing from database
+   * @param id - User ID to delete
+   * @param deletedBy - ID of admin performing the deletion
+   */
+  async softDelete(id: string, deletedBy: string): Promise<User> {
+    // Vérifier que l'utilisateur existe et n'est pas déjà supprimé
+    const existingUser = await this.findOne(id);
+    if (!existingUser) {
+      throw new BadRequestException('Utilisateur introuvable');
+    }
+
+    const supabase = this.supabaseService.getClient();
+
+    // Vérifier si déjà supprimé
+    const { data: checkData } = await supabase
+      .from('users')
+      .select('deleted_at')
+      .eq('id', id)
+      .single();
+
+    if (checkData?.deleted_at) {
+      throw new BadRequestException('Cet utilisateur est déjà supprimé');
+    }
+
+    // Soft delete: mettre à jour deleted_at et deleted_by
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: deletedBy,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new BadRequestException(`Erreur lors de la suppression: ${error?.message}`);
+    }
+
+    const user: User = {
+      id: data.id,
+      email: data.email,
+      password: data.password_hash,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      phone: data.phone,
+      role: data.role,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+
+    return this.excludePassword(user) as User;
+  }
+
+  /**
+   * Restore a soft-deleted user
+   * @param id - User ID to restore
+   */
+  async restore(id: string): Promise<User> {
+    const supabase = this.supabaseService.getClient();
+
+    // Vérifier que l'utilisateur existe et est bien supprimé
+    const { data: checkData } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (!checkData) {
+      throw new BadRequestException('Utilisateur introuvable');
+    }
+
+    if (!checkData.deleted_at) {
+      throw new BadRequestException('Cet utilisateur n\'est pas supprimé');
+    }
+
+    // Restaurer: remettre deleted_at et deleted_by à NULL
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        deleted_at: null,
+        deleted_by: null,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new BadRequestException(`Erreur lors de la restauration: ${error?.message}`);
+    }
+
+    const user: User = {
+      id: data.id,
+      email: data.email,
+      password: data.password_hash,
+      firstName: data.first_name,
+      lastName: data.last_name,
+      phone: data.phone,
+      role: data.role,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+
+    return this.excludePassword(user) as User;
+  }
+
+  /**
+   * Bulk soft delete multiple users
+   * @param ids - Array of user IDs to delete
+   * @param deletedBy - ID of admin performing the deletion
+   */
+  async bulkSoftDelete(ids: string[], deletedBy: string): Promise<{ deleted: number; errors: string[] }> {
+    const supabase = this.supabaseService.getClient();
+    const errors: string[] = [];
+    let deleted = 0;
+
+    for (const id of ids) {
+      try {
+        // Vérifier que ce n'est pas l'admin lui-même
+        if (id === deletedBy) {
+          errors.push(`${id}: Impossible de supprimer votre propre compte`);
+          continue;
+        }
+
+        // Vérifier que l'utilisateur existe
+        const { data: userData } = await supabase
+          .from('users')
+          .select('role, deleted_at')
+          .eq('id', id)
+          .single();
+
+        if (!userData) {
+          errors.push(`${id}: Utilisateur introuvable`);
+          continue;
+        }
+
+        if (userData.deleted_at) {
+          errors.push(`${id}: Déjà supprimé`);
+          continue;
+        }
+
+        if (userData.role === 'admin') {
+          errors.push(`${id}: Impossible de supprimer un autre administrateur`);
+          continue;
+        }
+
+        // Soft delete
+        const { error } = await supabase
+          .from('users')
+          .update({
+            deleted_at: new Date().toISOString(),
+            deleted_by: deletedBy,
+          })
+          .eq('id', id);
+
+        if (error) {
+          errors.push(`${id}: ${error.message}`);
+        } else {
+          deleted++;
+        }
+      } catch (err: any) {
+        errors.push(`${id}: ${err.message}`);
+      }
+    }
+
+    return { deleted, errors };
+  }
+
+  /**
+   * Get all users including soft-deleted ones (admin only)
+   */
+  async findAllIncludingDeleted(): Promise<User[]> {
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new BadRequestException(`Erreur lors de la récupération: ${error.message}`);
+    }
+
+    return data.map((row) => {
+      const user: User = {
+        id: row.id,
+        email: row.email,
+        password: row.password_hash,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        phone: row.phone,
+        role: row.role,
+        createdAt: new Date(row.created_at),
+        updatedAt: new Date(row.updated_at),
+      };
+      return this.excludePassword(user) as User;
+    });
+  }
 }

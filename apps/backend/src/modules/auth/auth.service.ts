@@ -24,8 +24,8 @@ export class AuthService {
     // Créer l'utilisateur (le hash du mot de passe est géré dans UsersService)
     const user = await this.usersService.create(createUserDto);
 
-    // Générer le token JWT
-    const accessToken = this.generateToken(user.id, user.email);
+    // Générer le token JWT avec le rôle
+    const accessToken = this.generateToken(user.id, user.email, user.role);
 
     return {
       user,
@@ -50,7 +50,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = this.generateToken(user.id, user.email);
+    const token = this.generateToken(user.id, user.email, user.role);
 
     // Exclure le mot de passe de la réponse
     const { password, ...userWithoutPassword } = user;
@@ -61,10 +61,11 @@ export class AuthService {
     };
   }
 
-  private generateToken(userId: string, email: string): string {
+  private generateToken(userId: string, email: string, role: string): string {
     return this.jwtService.sign({
       sub: userId,
       email,
+      role,
     });
   }
 }

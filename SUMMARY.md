@@ -1,10 +1,52 @@
-# 🎉 Projet ComHotel - Version 1.4
+# 🎉 Projet ComHotel - Version 1.5
 
-**Date**: 2026-01-01
-**Version**: v1.4 (User Profile Update - Backend + Frontend)
+**Date**: 2026-01-02
+**Version**: v1.5 (Soft Delete, Restore & Admin Interface)
 **Dépôt GitHub**: https://github.com/Rafikisan78/comhotel
 **Statut**: ✅ Déployé sur GitHub
-**Commit**: 5ee6d5c
+**Commit**: 303f43a
+
+## 🚀 Nouveautés v1.5 (2026-01-02)
+### Backend - Soft Delete & Admin Features
+- ✅ **[FONCTIONNALITÉ]** Soft Delete avec traçabilité (deleted_at, deleted_by)
+- ✅ **[FONCTIONNALITÉ]** Restauration d'utilisateurs supprimés
+- ✅ **[FONCTIONNALITÉ]** Suppression multiple (bulk delete)
+- ✅ **[SÉCURITÉ]** AdminGuard - Protection endpoints admin
+- ✅ **[SÉCURITÉ]** Admin ne peut pas se supprimer lui-même
+- ✅ **[SÉCURITÉ]** Admin ne peut pas supprimer un autre admin
+- ✅ **[SÉCURITÉ]** JWT inclut le rôle pour autorisation RBAC
+- ✅ Migration SQL: Colonnes deleted_at, deleted_by avec index partiels
+- ✅ Endpoints: DELETE /users/:id, POST /users/:id/restore, DELETE /users/bulk/delete
+- ✅ Endpoint: GET /users/admin/all (tous utilisateurs incluant supprimés)
+
+### Frontend - Interface Admin
+- ✅ **[NOUVELLE PAGE]** /admin/users - Gestion complète des utilisateurs
+- ✅ Table avec filtres (Actifs / Supprimés / Tous)
+- ✅ Suppression individuelle avec confirmation
+- ✅ Suppression multiple avec sélection checkboxes
+- ✅ Restauration d'utilisateurs supprimés
+- ✅ Protections UI (admins non sélectionnables/supprimables)
+- ✅ Messages de succès/erreur en temps réel
+- ✅ Interface responsive avec Tailwind CSS
+
+### Performance & Concurrence
+- ✅ **[DOCUMENTATION]** Guide complet concurrence et performance
+- ✅ Migrations SQL pour index de performance (email, role, created_at, updated_at)
+- ✅ Migration SQL pour concurrence optimiste (colonne version + trigger)
+- ✅ Index partiels pour optimiser requêtes soft delete
+- ✅ Index composite (role, deleted_at) pour requêtes admin
+
+### Tests End-to-End Réussis (14/14)
+- ✅ CREATE: 3 utilisateurs créés (Alice, Bob, Charlie)
+- ✅ READ: Récupération liste complète via GET /users/admin/all
+- ✅ UPDATE: Modification profil Alice (prénom + téléphone)
+- ✅ SOFT DELETE: Suppression Alice avec traçabilité
+- ✅ RESTORE: Restauration Alice
+- ✅ BULK DELETE: Suppression multiple Bob + Charlie
+- ✅ SÉCURITÉ: Admin ne peut pas se supprimer (403)
+- ✅ SÉCURITÉ: Non-admin ne peut pas supprimer (403)
+- ✅ SÉCURITÉ: Non-admin ne peut pas accéder endpoints admin (403)
+- ✅ Tous les tests Supabase validés en conditions réelles
 
 ## 🚀 Nouveautés v1.4 (2026-01-01)
 ### Backend - Mise à jour utilisateur

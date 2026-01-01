@@ -1,0 +1,320 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "ComHotel - User Delete & Restore Tests",
+  "dateExported": "2026-01-01",
+  "version": "1.1",
+  "folders": [],
+  "requests": [
+    {
+      "name": "1. Login as Admin",
+      "method": "POST",
+      "url": "http://localhost:3001/auth/login",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"rfateh@gmail.com\",\n  \"password\": \"VotreMotDePasse\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "json.accessToken",
+          "action": "setto",
+          "value": "{{admin_token}}"
+        }
+      ]
+    },
+    {
+      "name": "2. Create Test User 1",
+      "method": "POST",
+      "url": "http://localhost:3001/auth/register",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"testuser1@example.com\",\n  \"password\": \"Test1234!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User1\",\n  \"phone\": \"0123456781\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "json.user.id",
+          "action": "setto",
+          "value": "{{test_user1_id}}"
+        }
+      ]
+    },
+    {
+      "name": "3. Create Test User 2",
+      "method": "POST",
+      "url": "http://localhost:3001/auth/register",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"testuser2@example.com\",\n  \"password\": \"Test1234!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User2\",\n  \"phone\": \"0123456782\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "json.user.id",
+          "action": "setto",
+          "value": "{{test_user2_id}}"
+        }
+      ]
+    },
+    {
+      "name": "4. Create Test User 3",
+      "method": "POST",
+      "url": "http://localhost:3001/auth/register",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"testuser3@example.com\",\n  \"password\": \"Test1234!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User3\",\n  \"phone\": \"0123456783\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "json.user.id",
+          "action": "setto",
+          "value": "{{test_user3_id}}"
+        }
+      ]
+    },
+    {
+      "name": "5. GET All Users (including deleted) - Admin Only",
+      "method": "GET",
+      "url": "http://localhost:3001/users/admin/all",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "6. Soft Delete User 1 - Admin",
+      "method": "DELETE",
+      "url": "http://localhost:3001/users/{{test_user1_id}}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "7. Verify User 1 is Soft Deleted",
+      "method": "GET",
+      "url": "http://localhost:3001/users/admin/all",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "8. Restore User 1 - Admin",
+      "method": "POST",
+      "url": "http://localhost:3001/users/{{test_user1_id}}/restore",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "9. Verify User 1 is Restored",
+      "method": "GET",
+      "url": "http://localhost:3001/users/admin/all",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "10. Bulk Delete Users 2 & 3 - Admin",
+      "method": "DELETE",
+      "url": "http://localhost:3001/users/bulk/delete",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"ids\": [\"{{test_user2_id}}\", \"{{test_user3_id}}\"]\n}",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "11. Verify Bulk Delete Success",
+      "method": "GET",
+      "url": "http://localhost:3001/users/admin/all",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "12. Try Delete Self (Should FAIL)",
+      "method": "DELETE",
+      "url": "http://localhost:3001/users/ADMIN_USER_ID",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "13. Try Delete Already Deleted User (Should FAIL)",
+      "method": "DELETE",
+      "url": "http://localhost:3001/users/{{test_user2_id}}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{admin_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "14. Login as Test User 1",
+      "method": "POST",
+      "url": "http://localhost:3001/auth/login",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"testuser1@example.com\",\n  \"password\": \"Test1234!\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "json.accessToken",
+          "action": "setto",
+          "value": "{{user_token}}"
+        }
+      ]
+    },
+    {
+      "name": "15. Try Delete as Non-Admin (Should FAIL 403)",
+      "method": "DELETE",
+      "url": "http://localhost:3001/users/{{test_user3_id}}",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{user_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "16. Try Access Admin Endpoint as Non-Admin (Should FAIL 403)",
+      "method": "GET",
+      "url": "http://localhost:3001/users/admin/all",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{user_token}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    }
+  ]
+}
