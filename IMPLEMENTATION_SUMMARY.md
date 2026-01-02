@@ -13,6 +13,11 @@
 ### 🎯 Objectif
 Implémenter un système complet de gestion utilisateurs avec soft delete, restauration, suppression en masse et interface d'administration.
 
+### ✨ Améliorations (v1.5.1)
+- **[AMÉLIORATION]** Ajout des champs `deletedAt` et `deletedBy` dans les réponses API
+- **[REFACTORING]** Création de la méthode helper `mapRowToUser()` pour mapping consistant
+- **[AMÉLIORATION]** Toutes les réponses User incluent maintenant les informations de soft delete
+
 ### 📦 Fichiers Créés/Modifiés
 
 #### Backend - Soft Delete & Admin
@@ -60,6 +65,25 @@ export class AdminGuard implements CanActivate {
 ##### 3. UsersService - Soft Delete Methods
 **Fichier:** `apps/backend/src/modules/users/users.service.ts`
 
+**Méthode mapRowToUser() - Helper pour mapper les données Supabase:**
+```typescript
+private mapRowToUser(row: any): User {
+  return {
+    id: row.id,
+    email: row.email,
+    password: row.password_hash,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    phone: row.phone,
+    role: row.role,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
+    deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
+    deletedBy: row.deleted_by || undefined,
+  };
+}
+```
+
 **Méthode softDelete():**
 ```typescript
 async softDelete(id: string, deletedBy: string): Promise<User> {
@@ -90,7 +114,8 @@ async softDelete(id: string, deletedBy: string): Promise<User> {
     .select()
     .single();
 
-  return this.excludePassword(data) as User;
+  const user = this.mapRowToUser(data);
+  return this.excludePassword(user) as User;
 }
 ```
 
@@ -111,7 +136,8 @@ async restore(id: string): Promise<User> {
     throw new BadRequestException('Erreur lors de la restauration');
   }
 
-  return this.excludePassword(data) as User;
+  const user = this.mapRowToUser(data);
+  return this.excludePassword(user) as User;
 }
 ```
 

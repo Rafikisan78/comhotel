@@ -10,4 +10,6 @@ export class User {
   role: UserRole;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date;
+  deletedBy?: string;
 }

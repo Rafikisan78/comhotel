@@ -1,10 +1,16 @@
 # 🎉 Projet ComHotel - Version 1.5
 
 **Date**: 2026-01-02
-**Version**: v1.5 (Soft Delete, Restore & Admin Interface)
+**Version**: v1.5.1 (Soft Delete, Restore & Admin Interface)
 **Dépôt GitHub**: https://github.com/Rafikisan78/comhotel
 **Statut**: ✅ Déployé sur GitHub
-**Commit**: 303f43a
+**Commit**: (en cours)
+
+## 🚀 Nouveautés v1.5.1 (2026-01-02)
+### Améliorations API
+- ✅ **[AMÉLIORATION]** Champs `deletedAt` et `deletedBy` ajoutés dans toutes les réponses API User
+- ✅ **[REFACTORING]** Méthode helper `mapRowToUser()` pour mapping consistant Supabase → User entity
+- ✅ **[AMÉLIORATION]** Visibilité complète du statut de suppression dans les réponses
 
 ## 🚀 Nouveautés v1.5 (2026-01-02)
 ### Backend - Soft Delete & Admin Features

@@ -15,6 +15,23 @@ export class UsersService {
     return userWithoutPassword as Omit<User, 'password'>;
   }
 
+  // Méthode utilitaire pour mapper les données Supabase vers User entity
+  private mapRowToUser(row: any): User {
+    return {
+      id: row.id,
+      email: row.email,
+      password: row.password_hash,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      phone: row.phone,
+      role: row.role,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+      deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
+      deletedBy: row.deleted_by || undefined,
+    };
+  }
+
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Valider l'email
     if (!createUserDto.email || createUserDto.email.trim() === '') {
@@ -63,17 +80,7 @@ export class UsersService {
     }
 
     // Retourner l'utilisateur sans le mot de passe
-    const user: User = {
-      id: data.id,
-      email: data.email,
-      password: data.password_hash,
-      firstName: data.first_name,
-      lastName: data.last_name,
-      phone: data.phone,
-      role: data.role,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-    };
+    const user = this.mapRowToUser(data);
 
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword as User;
@@ -88,17 +95,7 @@ export class UsersService {
     }
 
     return data.map((row) => {
-      const user: User = {
-        id: row.id,
-        email: row.email,
-        password: row.password_hash,
-        firstName: row.first_name,
-        lastName: row.last_name,
-        phone: row.phone,
-        role: row.role,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-      };
+      const user = this.mapRowToUser(row);
       return this.excludePassword(user) as User;
     });
   }
@@ -113,18 +110,7 @@ export class UsersService {
 
     if (error || !data) return null;
 
-    const user: User = {
-      id: data.id,
-      email: data.email,
-      password: data.password_hash,
-      firstName: data.first_name,
-      lastName: data.last_name,
-      phone: data.phone,
-      role: data.role,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-    };
-
+    const user = this.mapRowToUser(data);
     return this.excludePassword(user) as User;
   }
 
@@ -214,17 +200,7 @@ export class UsersService {
       throw new BadRequestException('Échec de la mise à jour');
     }
 
-    const user: User = {
-      id: data.id,
-      email: data.email,
-      password: data.password_hash,
-      firstName: data.first_name,
-      lastName: data.last_name,
-      phone: data.phone,
-      role: data.role,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-    };
+    const user = this.mapRowToUser(data);
 
     return this.excludePassword(user) as User;
   }
@@ -276,17 +252,7 @@ export class UsersService {
       throw new BadRequestException(`Erreur lors de la suppression: ${error?.message}`);
     }
 
-    const user: User = {
-      id: data.id,
-      email: data.email,
-      password: data.password_hash,
-      firstName: data.first_name,
-      lastName: data.last_name,
-      phone: data.phone,
-      role: data.role,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-    };
+    const user = this.mapRowToUser(data);
 
     return this.excludePassword(user) as User;
   }
@@ -328,17 +294,7 @@ export class UsersService {
       throw new BadRequestException(`Erreur lors de la restauration: ${error?.message}`);
     }
 
-    const user: User = {
-      id: data.id,
-      email: data.email,
-      password: data.password_hash,
-      firstName: data.first_name,
-      lastName: data.last_name,
-      phone: data.phone,
-      role: data.role,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-    };
+    const user = this.mapRowToUser(data);
 
     return this.excludePassword(user) as User;
   }
@@ -420,17 +376,7 @@ export class UsersService {
     }
 
     return data.map((row) => {
-      const user: User = {
-        id: row.id,
-        email: row.email,
-        password: row.password_hash,
-        firstName: row.first_name,
-        lastName: row.last_name,
-        phone: row.phone,
-        role: row.role,
-        createdAt: new Date(row.created_at),
-        updatedAt: new Date(row.updated_at),
-      };
+      const user = this.mapRowToUser(row);
       return this.excludePassword(user) as User;
     });
   }
