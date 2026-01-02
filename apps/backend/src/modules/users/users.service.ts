@@ -53,9 +53,9 @@ export class UsersService {
     }
 
     // Vérifier la complexité du mot de passe
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/;
     if (!passwordRegex.test(createUserDto.password)) {
-      throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&)');
+      throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)');
     }
 
     // Hasher le mot de passe
@@ -176,9 +176,9 @@ export class UsersService {
       }
 
       // Vérifier la complexité du mot de passe
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/;
       if (!passwordRegex.test(updateUserDto.password)) {
-        throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&)');
+        throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)');
       }
 
       updateData.password_hash = await HashUtil.hash(updateUserDto.password);

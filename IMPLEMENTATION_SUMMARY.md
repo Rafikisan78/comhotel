@@ -71,7 +71,7 @@ export class EmailConfirmationController {
 - ✅ Au moins 1 majuscule (A-Z)
 - ✅ Au moins 1 minuscule (a-z)
 - ✅ Au moins 1 chiffre (0-9)
-- ✅ Au moins 1 caractère spécial (@$!%*?&)
+- ✅ Au moins 1 caractère spécial (@$!%*?&._-+=#)
 - ✅ Maximum 128 caractères (support passphrases)
 
 **Fichiers modifiés:**
@@ -83,8 +83,8 @@ export class EmailConfirmationController {
   message: 'Le mot de passe doit contenir au moins 12 caractères',
 })
 @MaxLength(128)
-@Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-  message: 'Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&)',
+@Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/, {
+  message: 'Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)',
 })
 password: string;
 ```
@@ -99,9 +99,9 @@ if (!createUserDto.password || createUserDto.password.length < 12) {
   throw new BadRequestException('Le mot de passe doit contenir au moins 12 caractères');
 }
 
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/;
 if (!passwordRegex.test(createUserDto.password)) {
-  throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&)');
+  throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)');
 }
 ```
 

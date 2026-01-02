@@ -27,8 +27,15 @@ export default function RegisterPage() {
       return
     }
 
-    if (formData.password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères')
+    // Validation OWASP 2024
+    if (formData.password.length < 12) {
+      setError('Le mot de passe doit contenir au moins 12 caractères')
+      return
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/
+    if (!passwordRegex.test(formData.password)) {
+      setError('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)')
       return
     }
 
@@ -125,9 +132,9 @@ export default function RegisterPage() {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
-              minLength={8}
+              minLength={12}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="Au moins 8 caractères"
+              placeholder="Min 12 caractères (1 maj, 1 min, 1 chiffre, 1 spécial)"
             />
           </div>
           <div>
@@ -139,7 +146,7 @@ export default function RegisterPage() {
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               required
-              minLength={8}
+              minLength={12}
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
               placeholder="Retapez votre mot de passe"
             />
