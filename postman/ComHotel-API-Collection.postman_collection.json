@@ -1,0 +1,627 @@
+{
+	"info": {
+		"name": "ComHotel API - Complete Test Suite",
+		"description": "Collection complète pour tester l'API ComHotel avec confirmation email",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "comhotel-v1"
+	},
+	"item": [
+		{
+			"name": "Auth - Supabase",
+			"item": [
+				{
+					"name": "1. Register (Inscription avec Email)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('ACCESS_TOKEN', jsonData.access_token);",
+									"    pm.environment.set('USER_ID', jsonData.user.id);",
+									"    console.log('✅ User created:', jsonData.user.email);",
+									"    console.log('⚠️ Email confirmed:', jsonData.user.email_confirmed_at);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\",\n  \"password\": \"{{TEST_PASSWORD}}\",\n  \"options\": {\n    \"data\": {\n      \"first_name\": \"Test\",\n      \"last_name\": \"User\",\n      \"role\": \"guest\"\n    },\n    \"emailRedirectTo\": \"{{FRONTEND_URL}}/auth/confirm\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/signup",
+							"host": [
+								"{{SUPABASE_URL}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"signup"
+							]
+						},
+						"description": "Créer un nouvel utilisateur avec envoi d'email de confirmation"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Resend Confirmation Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"signup\",\n  \"email\": \"{{TEST_EMAIL}}\"\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/resend",
+							"host": [
+								"{{SUPABASE_URL}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"resend"
+							]
+						},
+						"description": "Renvoyer l'email de confirmation (max 1 par minute)"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Login AVANT Confirmation (Devrait échouer)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 400) {",
+									"    console.log('✅ Login bloqué car email non confirmé (normal)');",
+									"} else if (pm.response.code === 200) {",
+									"    console.log('⚠️ Login réussi SANS confirmation - Vérifier config Supabase');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\",\n  \"password\": \"{{TEST_PASSWORD}}\"\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/token?grant_type=password",
+							"host": [
+								"{{SUPABASE_URL}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"token"
+							],
+							"query": [
+								{
+									"key": "grant_type",
+									"value": "password"
+								}
+							]
+						},
+						"description": "Tenter de se connecter AVANT confirmation (devrait échouer)"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Verify Email Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('ACCESS_TOKEN', jsonData.access_token);",
+									"    console.log('✅ Email confirmé !');",
+									"    console.log('Email confirmed at:', jsonData.user.email_confirmed_at);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"signup\",\n  \"token_hash\": \"COLLER_LE_TOKEN_DE_L_EMAIL_ICI\"\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/verify",
+							"host": [
+								"{{SUPABASE_URL}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"verify"
+							]
+						},
+						"description": "Vérifier le token reçu par email (récupérer token_hash depuis l'URL de l'email)"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Login APRÈS Confirmation (Devrait réussir)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('ACCESS_TOKEN', jsonData.access_token);",
+									"    pm.environment.set('REFRESH_TOKEN', jsonData.refresh_token);",
+									"    pm.environment.set('USER_ID', jsonData.user.id);",
+									"    console.log('✅ Login réussi après confirmation !');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\",\n  \"password\": \"{{TEST_PASSWORD}}\"\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/token?grant_type=password",
+							"host": [
+								"{{SUPABASE_URL}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"token"
+							],
+							"query": [
+								{
+									"key": "grant_type",
+									"value": "password"
+								}
+							]
+						},
+						"description": "Se connecter APRÈS avoir confirmé l'email"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/user",
+							"host": [
+								"{{SUPABASE_URL}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"user"
+							]
+						},
+						"description": "Récupérer les infos de l'utilisateur connecté"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/logout",
+							"host": [
+								"{{SUPABASE_URL}}"
+							],
+							"path": [
+								"auth",
+								"v1",
+								"logout"
+							]
+						},
+						"description": "Déconnexion de l'utilisateur"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests d'authentification avec Supabase Auth et confirmation email"
+		},
+		{
+			"name": "Auth - Backend NestJS",
+			"item": [
+				{
+					"name": "Register (Backend API)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('BACKEND_ACCESS_TOKEN', jsonData.accessToken);",
+									"    console.log('✅ User registered via backend');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"backend.test@example.com\",\n  \"password\": \"{{TEST_PASSWORD}}\",\n  \"firstName\": \"Backend\",\n  \"lastName\": \"Test\",\n  \"role\": \"guest\"\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/auth/register",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"description": "Inscription via l'API backend NestJS"
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Backend API)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('BACKEND_ACCESS_TOKEN', jsonData.accessToken);",
+									"    pm.environment.set('BACKEND_USER_ID', jsonData.user.id);",
+									"    console.log('✅ Logged in via backend');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{ADMIN_EMAIL}}\",\n  \"password\": \"{{ADMIN_PASSWORD}}\"\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/auth/login",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Connexion via l'API backend NestJS"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests avec l'API backend NestJS (système JWT actuel)"
+		},
+		{
+			"name": "Users - CRUD",
+			"item": [
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/admin/all",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"users",
+								"admin",
+								"all"
+							]
+						},
+						"description": "Récupérer tous les utilisateurs (incluant supprimés)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Active Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BACKEND_URL}}/users",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"users"
+							]
+						},
+						"description": "Récupérer les utilisateurs actifs uniquement"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/{{BACKEND_USER_ID}}",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"users",
+								"{{BACKEND_USER_ID}}"
+							]
+						},
+						"description": "Récupérer un utilisateur par son ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"phone\": \"+33612345678\"\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/{{BACKEND_USER_ID}}",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"users",
+								"{{BACKEND_USER_ID}}"
+							]
+						},
+						"description": "Mettre à jour un utilisateur"
+					},
+					"response": []
+				},
+				{
+					"name": "Soft Delete User (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/{{USER_TO_DELETE_ID}}",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"users",
+								"{{USER_TO_DELETE_ID}}"
+							]
+						},
+						"description": "Suppression douce d'un utilisateur (admin uniquement)"
+					},
+					"response": []
+				},
+				{
+					"name": "Restore User (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/{{USER_TO_DELETE_ID}}/restore",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"users",
+								"{{USER_TO_DELETE_ID}}",
+								"restore"
+							]
+						},
+						"description": "Restaurer un utilisateur supprimé"
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Delete Users (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ids\": [\n    \"id-user-1\",\n    \"id-user-2\"\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/bulk/delete",
+							"host": [
+								"{{BACKEND_URL}}"
+							],
+							"path": [
+								"users",
+								"bulk",
+								"delete"
+							]
+						},
+						"description": "Suppression multiple d'utilisateurs"
+					},
+					"response": []
+				}
+			],
+			"description": "CRUD complet des utilisateurs avec soft delete"
+		}
+	],
+	"variable": []
+}

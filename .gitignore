@@ -42,3 +42,7 @@ yarn-error.log*
 # Misc
 *.pem
 .vercel
+
+# Postman (avec clés API sensibles)
+postman/*Environment*.json
+thunder-tests/thunderEnvironment.json

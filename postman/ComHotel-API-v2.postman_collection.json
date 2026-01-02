@@ -1,0 +1,504 @@
+{
+	"info": {
+		"name": "ComHotel API v2 - Email Confirmation",
+		"description": "Collection complète avec nouveaux endpoints de confirmation email",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "comhotel-v2"
+	},
+	"item": [
+		{
+			"name": "Email Confirmation (Nouveaux Endpoints)",
+			"item": [
+				{
+					"name": "1. Verify Email (Backend)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.session) {",
+									"        pm.environment.set('ACCESS_TOKEN', jsonData.session.access_token);",
+									"    }",
+									"    console.log('✅ Email vérifié:', jsonData.message);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token_hash\": \"COLLER_LE_TOKEN_DE_L_EMAIL_ICI\",\n  \"type\": \"signup\"\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/auth/email/verify",
+							"host": ["{{BACKEND_URL}}"],
+							"path": ["auth", "email", "verify"]
+						},
+						"description": "✅ NOUVEAU - Vérifier l'email via le backend NestJS"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Resend Confirmation Email (Backend)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\"\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/auth/email/resend",
+							"host": ["{{BACKEND_URL}}"],
+							"path": ["auth", "email", "resend"]
+						},
+						"description": "✅ NOUVEAU - Renvoyer l'email de confirmation (limite: 1/min)"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Check Email Status (Backend)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\"\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/auth/email/check-status",
+							"host": ["{{BACKEND_URL}}"],
+							"path": ["auth", "email", "check-status"]
+						},
+						"description": "✅ NOUVEAU - Vérifier si un email a été confirmé"
+					},
+					"response": []
+				}
+			],
+			"description": "🆕 Nouveaux endpoints pour la confirmation email via le backend NestJS"
+		},
+		{
+			"name": "Auth - Supabase Direct",
+			"item": [
+				{
+					"name": "1. Register (Supabase)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('ACCESS_TOKEN', jsonData.access_token);",
+									"    pm.environment.set('USER_ID', jsonData.user.id);",
+									"    console.log('✅ User created:', jsonData.user.email);",
+									"    console.log('⚠️ Email confirmed:', jsonData.user.email_confirmed_at);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\",\n  \"password\": \"{{TEST_PASSWORD}}\",\n  \"options\": {\n    \"data\": {\n      \"first_name\": \"Test\",\n      \"last_name\": \"User\",\n      \"role\": \"guest\"\n    },\n    \"emailRedirectTo\": \"{{FRONTEND_URL}}/auth/confirm\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/signup",
+							"host": ["{{SUPABASE_URL}}"],
+							"path": ["auth", "v1", "signup"]
+						},
+						"description": "Inscription directe via Supabase Auth API"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Resend Email (Supabase)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"signup\",\n  \"email\": \"{{TEST_EMAIL}}\"\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/resend",
+							"host": ["{{SUPABASE_URL}}"],
+							"path": ["auth", "v1", "resend"]
+						},
+						"description": "Renvoyer l'email directement via Supabase API"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Login AVANT Confirmation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 400) {",
+									"    console.log('✅ Login bloqué (normal - email non confirmé)');",
+									"} else if (pm.response.code === 200) {",
+									"    console.log('⚠️ Login réussi SANS confirmation');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\",\n  \"password\": \"{{TEST_PASSWORD}}\"\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/token?grant_type=password",
+							"host": ["{{SUPABASE_URL}}"],
+							"path": ["auth", "v1", "token"],
+							"query": [
+								{
+									"key": "grant_type",
+									"value": "password"
+								}
+							]
+						},
+						"description": "Devrait échouer si email non confirmé"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Verify Email Token (Supabase)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('ACCESS_TOKEN', jsonData.access_token);",
+									"    console.log('✅ Email confirmé via Supabase !');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"signup\",\n  \"token_hash\": \"COLLER_LE_TOKEN_ICI\"\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/verify",
+							"host": ["{{SUPABASE_URL}}"],
+							"path": ["auth", "v1", "verify"]
+						},
+						"description": "Vérifier directement via Supabase API"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Login APRÈS Confirmation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('ACCESS_TOKEN', jsonData.access_token);",
+									"    pm.environment.set('REFRESH_TOKEN', jsonData.refresh_token);",
+									"    console.log('✅ Login réussi après confirmation !');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{TEST_EMAIL}}\",\n  \"password\": \"{{TEST_PASSWORD}}\"\n}"
+						},
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/token?grant_type=password",
+							"host": ["{{SUPABASE_URL}}"],
+							"path": ["auth", "v1", "token"],
+							"query": [
+								{
+									"key": "grant_type",
+									"value": "password"
+								}
+							]
+						},
+						"description": "Devrait réussir après confirmation"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "apikey",
+								"value": "{{SUPABASE_ANON_KEY}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{SUPABASE_URL}}/auth/v1/user",
+							"host": ["{{SUPABASE_URL}}"],
+							"path": ["auth", "v1", "user"]
+						},
+						"description": "Récupérer l'utilisateur connecté"
+					},
+					"response": []
+				}
+			],
+			"description": "Tests directs avec l'API Supabase Auth"
+		},
+		{
+			"name": "Auth - Backend NestJS (Existant)",
+			"item": [
+				{
+					"name": "Register (Backend)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('BACKEND_ACCESS_TOKEN', jsonData.accessToken);",
+									"    console.log('✅ Registered via backend');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"backend.test@example.com\",\n  \"password\": \"{{TEST_PASSWORD}}\",\n  \"firstName\": \"Backend\",\n  \"lastName\": \"Test\",\n  \"role\": \"guest\"\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/auth/register",
+							"host": ["{{BACKEND_URL}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "⚠️ ANCIEN - Système JWT actuel (sans confirmation email)"
+					},
+					"response": []
+				},
+				{
+					"name": "Login (Backend)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.environment.set('BACKEND_ACCESS_TOKEN', jsonData.accessToken);",
+									"    pm.environment.set('BACKEND_USER_ID', jsonData.user.id);",
+									"    console.log('✅ Logged in via backend');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{ADMIN_EMAIL}}\",\n  \"password\": \"{{ADMIN_PASSWORD}}\"\n}"
+						},
+						"url": {
+							"raw": "{{BACKEND_URL}}/auth/login",
+							"host": ["{{BACKEND_URL}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "⚠️ ANCIEN - Login sans vérification email"
+					},
+					"response": []
+				}
+			],
+			"description": "⚠️ Endpoints existants (système JWT actuel)"
+		},
+		{
+			"name": "Users - CRUD",
+			"item": [
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/admin/all",
+							"host": ["{{BACKEND_URL}}"],
+							"path": ["users", "admin", "all"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Soft Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/{{USER_TO_DELETE_ID}}",
+							"host": ["{{BACKEND_URL}}"],
+							"path": ["users", "{{USER_TO_DELETE_ID}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Restore User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{BACKEND_ACCESS_TOKEN}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{BACKEND_URL}}/users/{{USER_TO_DELETE_ID}}/restore",
+							"host": ["{{BACKEND_URL}}"],
+							"path": ["users", "{{USER_TO_DELETE_ID}}", "restore"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": []
+}

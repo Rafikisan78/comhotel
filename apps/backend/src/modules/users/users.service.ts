@@ -47,9 +47,15 @@ export class UsersService {
       throw new ConflictException('Un utilisateur avec cet email existe déjà');
     }
 
-    // Valider le mot de passe
-    if (!createUserDto.password || createUserDto.password.length < 8) {
-      throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères');
+    // Valider le mot de passe (OWASP 2024)
+    if (!createUserDto.password || createUserDto.password.length < 12) {
+      throw new BadRequestException('Le mot de passe doit contenir au moins 12 caractères');
+    }
+
+    // Vérifier la complexité du mot de passe
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
+    if (!passwordRegex.test(createUserDto.password)) {
+      throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&)');
     }
 
     // Hasher le mot de passe
@@ -163,11 +169,18 @@ export class UsersService {
       updateData.email = normalizedEmail;
     }
 
-    // Gérer la mise à jour du mot de passe avec hashage
+    // Gérer la mise à jour du mot de passe avec hashage (OWASP 2024)
     if (updateUserDto.password) {
-      if (updateUserDto.password.length < 8) {
-        throw new BadRequestException('Le mot de passe doit contenir au moins 8 caractères');
+      if (updateUserDto.password.length < 12) {
+        throw new BadRequestException('Le mot de passe doit contenir au moins 12 caractères');
       }
+
+      // Vérifier la complexité du mot de passe
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/;
+      if (!passwordRegex.test(updateUserDto.password)) {
+        throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&)');
+      }
+
       updateData.password_hash = await HashUtil.hash(updateUserDto.password);
     }
 

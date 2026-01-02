@@ -4,8 +4,10 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { EmailConfirmationController } from './email-confirmation.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { SupabaseService } from '../../common/database/supabase.service';
 
 @Module({
   imports: [
@@ -22,8 +24,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  controllers: [AuthController, EmailConfirmationController],
+  providers: [AuthService, JwtStrategy, SupabaseService],
   exports: [AuthService],
 })
 export class AuthModule {}
