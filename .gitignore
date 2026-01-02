@@ -46,3 +46,13 @@ yarn-error.log*
 # Postman (avec clés API sensibles)
 postman/*Environment*.json
 thunder-tests/thunderEnvironment.json
+
+# Fichiers temporaires et sensibles
+admin_credentials.txt
+*_credentials.txt
+*.sql
+*.http
+thunder-tests/*.json
+thunder-tests/*.md
+nul
+prompt_*.md

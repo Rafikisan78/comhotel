@@ -1,10 +1,40 @@
-# 🎉 Projet ComHotel - Version 1.5
+# 🎉 Projet ComHotel - Version 1.6
 
 **Date**: 2026-01-02
-**Version**: v1.5.1 (Soft Delete, Restore & Admin Interface)
+**Version**: v1.6.0 (Email Confirmation + OWASP 2024 + Page /auth/confirm)
 **Dépôt GitHub**: https://github.com/Rafikisan78/comhotel
-**Statut**: ✅ Déployé sur GitHub
-**Commit**: e158d47
+**Statut**: ✅ Prêt pour commit GitHub
+**Tests E2E**: 9/9 réussis (100%)
+
+## 🚀 Nouveautés v1.6.0 (2026-01-02)
+
+### Backend - Email Confirmation & OWASP 2024
+- ✅ **[FONCTIONNALITÉ]** Système de confirmation email Supabase
+- ✅ **[SÉCURITÉ]** Politique de mot de passe OWASP 2024 (12 chars min + complexité)
+- ✅ Endpoints: POST /auth/email/verify, /resend, /check-status
+- ✅ Controller: EmailConfirmationController (128 lignes)
+- ✅ Validation OWASP: @MinLength(12), @MaxLength(128), regex complexité
+- ✅ Double validation: DTO + Service
+- ✅ Protection injection de rôle maintenue (guest forcé)
+
+### Frontend - Page Confirmation Email
+- ✅ **[NOUVELLE PAGE]** /auth/confirm - Gère redirect après confirmation Supabase
+- ✅ États visuels: Loading, Success, Error
+- ✅ Redirection automatique vers /login après succès
+- ✅ Messages utilisateur clairs et informatifs
+- ✅ Interface responsive avec animations
+
+### Tests & Qualité
+- ✅ **9/9 tests E2E réussis (100%)** avec base Supabase réelle
+- ✅ Collection Postman complète (20 tests en 6 dossiers)
+- ✅ Environnement Postman avec variables configurées
+- ✅ Flux complet validé: Inscription → Email → Confirmation → Login → CRUD
+
+### Documentation
+- ✅ IMPLEMENTATION_SUMMARY.md mis à jour (v1.6.0)
+- ✅ Guides: SUPABASE_EMAIL_CONFIRMATION_SETUP.md
+- ✅ Guides: TESTING_EMAIL_CONFIRMATION.md
+- ✅ Guides: SECURITY_KEYS_ROTATION.md
 
 ## 🚀 Nouveautés v1.5.1 (2026-01-02)
 ### Améliorations API

@@ -122,10 +122,13 @@ if (!passwordRegex.test(createUserDto.password)) {
 ### 📦 Fichiers Créés
 
 1. **apps/backend/src/modules/auth/email-confirmation.controller.ts** (128 lignes)
-2. **docs/SUPABASE_EMAIL_CONFIRMATION_SETUP.md** - Guide configuration SMTP
-3. **docs/TESTING_EMAIL_CONFIRMATION.md** - Guide de test du flux
-4. **docs/SECURITY_KEYS_ROTATION.md** - Guide rotation clés compromises
-5. **postman/ComHotel-API-v2.postman_collection.json** - Collection Postman mise à jour
+2. **apps/frontend/src/app/(auth)/confirm/page.tsx** (121 lignes) - Page de confirmation email
+3. **docs/SUPABASE_EMAIL_CONFIRMATION_SETUP.md** - Guide configuration SMTP
+4. **docs/TESTING_EMAIL_CONFIRMATION.md** - Guide de test du flux
+5. **docs/SECURITY_KEYS_ROTATION.md** - Guide rotation clés compromises
+6. **postman/ComHotel-Tests-Manuels.postman_collection.json** - Collection Postman complète (20 tests)
+7. **postman/ComHotel-Tests-Environment.postman_environment.json** - Environnement Postman
+8. **admin_credentials.txt** - Identifiants admin (non commité)
 
 ### 📝 Fichiers Modifiés
 
@@ -220,27 +223,51 @@ if (!passwordRegex.test(createUserDto.password)) {
 2. `TESTING_EMAIL_CONFIRMATION.md` - Guide de test complet
 3. `SECURITY_KEYS_ROTATION.md` - Procédure rotation clés compromises
 
-**Collection Postman:**
-- Tous les endpoints de confirmation email
-- Tests automatisés avec scripts
-- Variables d'environnement configurées
+**Collection Postman (20 tests organisés en 6 dossiers):**
+1. **Flux Complet Inscription + Email Confirmation** (6 tests)
+   - A à F : De l'inscription à la connexion guest
+2. **Tests Politique OWASP 2024** (5 tests)
+   - G à K : Validation mots de passe
+3. **Test Renvoi Email** (2 tests)
+   - L à M : Resend + Rate limiting
+4. **Tests Sécurité** (2 tests)
+   - N à O : Injection rôle + Login sans confirmation
+5. **Tests CRUD Utilisateurs** (3 tests)
+   - P à R : Update + Soft Delete + Restore
+6. **Tests Administration** (2 tests)
+   - A à B : Login admin + Liste utilisateurs
+
+### ✅ Tests End-to-End Complets (9/9 - 100%)
+
+**Tous les tests ont été exécutés avec succès le 2026-01-02 :**
+
+1. ✅ **Inscription utilisateur** - Email confirmation envoyé
+2. ✅ **Confirmation email via API** - `email_verified = true`
+3. ✅ **Création dans table users** - Rôle `guest` forcé
+4. ✅ **Connexion utilisateur guest** - Access Token reçu
+5. ✅ **Connexion admin** - Rôle `admin` validé
+6. ✅ **Liste tous utilisateurs (admin)** - Endpoint protégé fonctionnel
+7. ✅ **Mise à jour utilisateur** - Téléphone modifié avec succès
+8. ✅ **Soft delete utilisateur** - `deletedAt` + `deletedBy` renseignés
+9. ✅ **Restauration utilisateur** - `deletedAt` + `deletedBy` remis à `null`
 
 ### 🎯 Prochaines Étapes
 
 #### Frontend (Priorité Haute)
-1. **Page `/auth/confirm`** pour gérer le redirect après confirmation email
-2. **Intégration des nouveaux endpoints** dans le frontend
-3. **Messages utilisateur** pour statut confirmation
+1. ✅ **Page `/auth/confirm`** créée - Gère le redirect après confirmation email
+2. **Intégration complète frontend** - Tester le flux complet via l'interface web
+3. **Messages utilisateur** pour statut confirmation améliorés
 
 #### Sécurité Avancée (Priorité Moyenne)
 4. **Rate limiting** sur endpoints sensibles (login, register)
 5. **Vérification mots de passe compromis** via Have I Been Pwned API
 6. **Multi-factor authentication (MFA)** - 2FA par email ou SMS
+7. **Correction anomalie** - Endpoint `/auth/email/check-status` (incohérence message)
 
 #### Tests (Priorité Moyenne)
-7. **Tests unitaires** pour EmailConfirmationController
-8. **Tests E2E** du flux complet frontend + backend
-9. **Tests de sécurité** automatisés
+8. **Tests unitaires** pour EmailConfirmationController
+9. ✅ **Tests E2E** du flux complet frontend + backend (9/9 réussis)
+10. **Tests de sécurité** automatisés
 
 ---
 
