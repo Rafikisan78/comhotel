@@ -4,7 +4,7 @@
 **Date:** 2026-01-02
 **Dépôt GitHub:** https://github.com/Rafikisan78/comhotel
 **Statut:** ✅ Versionné et déployé sur GitHub
-**Commit:** (en cours)
+**Commit:** e158d47
 
 ---
 

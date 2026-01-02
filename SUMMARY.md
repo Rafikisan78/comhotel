@@ -4,7 +4,7 @@
 **Version**: v1.5.1 (Soft Delete, Restore & Admin Interface)
 **Dépôt GitHub**: https://github.com/Rafikisan78/comhotel
 **Statut**: ✅ Déployé sur GitHub
-**Commit**: (en cours)
+**Commit**: e158d47
 
 ## 🚀 Nouveautés v1.5.1 (2026-01-02)
 ### Améliorations API
