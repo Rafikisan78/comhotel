@@ -153,6 +153,14 @@ export default function ProfilePage() {
               >
                 Accueil
               </a>
+              {user?.role === 'admin' && (
+                <a
+                  href="/admin/users"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                >
+                  Gérer les utilisateurs
+                </a>
+              )}
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"

@@ -323,13 +323,21 @@ export default function AdminUsersPage() {
                         Restaurer
                       </button>
                     ) : (
-                      <button
-                        onClick={() => handleDeleteUser(user)}
-                        disabled={user.role === 'admin'}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Supprimer
-                      </button>
+                      <>
+                        <a
+                          href={`/admin/users/${user.id}/edit`}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
+                          Modifier
+                        </a>
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          disabled={user.role === 'admin'}
+                          className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Supprimer
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>
