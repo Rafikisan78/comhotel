@@ -38,15 +38,17 @@ export default function ProfilePage() {
   const loadUserProfile = async () => {
     try {
       const token = localStorage.getItem('access_token')
-      const userId = localStorage.getItem('user_id')
 
-      if (!token || !userId) {
+      if (!token) {
         router.push('/login')
         return
       }
 
-      const response = await apiClient.get(`/users/${userId}`)
+      const response = await apiClient.get('/users/me')
       const userData = response.data
+
+      // Stocker l'ID utilisateur si pas déjà fait
+      localStorage.setItem('user_id', userData.id)
 
       setUser(userData)
       setFirstName(userData.firstName)
@@ -84,7 +86,6 @@ export default function ProfilePage() {
     setUpdating(true)
 
     try {
-      const userId = localStorage.getItem('user_id')
       const updateData: any = {}
 
       // Only send changed fields
@@ -100,7 +101,7 @@ export default function ProfilePage() {
         return
       }
 
-      const response = await apiClient.patch(`/users/${userId}`, updateData)
+      const response = await apiClient.patch('/users/me', updateData)
 
       setUser(response.data)
       setSuccess('Profil mis à jour avec succès !')

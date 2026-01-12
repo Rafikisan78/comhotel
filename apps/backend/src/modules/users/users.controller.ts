@@ -3,7 +3,6 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { SelfOrAdminGuard } from '../../common/guards/self-or-admin.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 
 @Controller('users')
@@ -15,7 +14,22 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  findMe(@Request() req: any) {
+    const userId = req.user.sub || req.user.userId;
+    return this.usersService.findOne(userId);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  updateMe(@Request() req: any, @Body() updateUserDto: UpdateUserDto) {
+    const userId = req.user.sub || req.user.userId;
+    return this.usersService.update(userId, updateUserDto);
+  }
+
   @Get()
+  @UseGuards(JwtAuthGuard, AdminGuard)
   findAll() {
     return this.usersService.findAll();
   }
@@ -27,12 +41,13 @@ export class UsersController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, SelfOrAdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
   }
