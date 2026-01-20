@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Param, Body } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 
 @Controller('rooms')
@@ -22,6 +22,11 @@ export class RoomsController {
 
   @Put(':id')
   update(@Param('id') id: string, @Body() updateRoomDto: any) {
+    return this.roomsService.update(id, updateRoomDto);
+  }
+
+  @Patch(':id')
+  partialUpdate(@Param('id') id: string, @Body() updateRoomDto: any) {
     return this.roomsService.update(id, updateRoomDto);
   }
 
