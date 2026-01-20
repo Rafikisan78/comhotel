@@ -11,6 +11,7 @@ import { SearchModule } from './modules/search/search.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { ChatbotModule } from './modules/chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ReviewsModule,
     NotificationsModule,
     AdminModule,
+    ChatbotModule,
   ],
 })
 export class AppModule {}
