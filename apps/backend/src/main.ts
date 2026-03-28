@@ -24,6 +24,9 @@ async function bootstrap() {
       // Allow all Vercel preview URLs for this project
       if (origin.endsWith(".vercel.app")) return callback(null, true);
 
+      // Allow custom domain (with and without www)
+      if (origin.endsWith("goungwamwe.com")) return callback(null, true);
+
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
