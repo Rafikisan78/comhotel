@@ -34,4 +34,7 @@ async function bootstrap() {
   console.log(`🚀 Backend running on http://localhost:${port}`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error("Failed to start application:", err);
+  process.exit(1);
+});
