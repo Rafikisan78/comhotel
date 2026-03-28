@@ -10,7 +10,7 @@ export class SupabaseService implements OnModuleInit {
 
   onModuleInit() {
     const supabaseUrl = this.configService.get<string>("SUPABASE_URL");
-    const supabaseKey = this.configService.get<string>("SUPABASE_ANON_KEY");
+    const supabaseKey = this.configService.get<string>("SUPABASE_SERVICE_KEY") || this.configService.get<string>("SUPABASE_ANON_KEY");
 
     if (!supabaseUrl || !supabaseKey) {
       throw new Error("Supabase URL and Key must be provided");
