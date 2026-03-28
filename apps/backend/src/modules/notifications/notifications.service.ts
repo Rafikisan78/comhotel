@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class NotificationsService {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async sendEmail(to: string, subject: string, body: string) {
     // Mock email service
     console.log(`Sending email to ${to}: ${subject}`);

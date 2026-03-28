@@ -1,5 +1,5 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { SupabaseService } from '../../common/database/supabase.service';
+import { Injectable, BadRequestException } from "@nestjs/common";
+import { SupabaseService } from "../../common/database/supabase.service";
 
 /**
  * Service de chatbot sécurisé pour la recherche d'hôtels
@@ -24,10 +24,15 @@ import { SupabaseService } from '../../common/database/supabase.service';
  */
 
 // Types de réponse autorisés (whitelist)
-export type AllowedResponseType = 'hotel_list' | 'hotel_filter' | 'availability_check' | 'error' | 'help';
+export type AllowedResponseType =
+  | "hotel_list"
+  | "hotel_filter"
+  | "availability_check"
+  | "error"
+  | "help";
 
 export interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: Date;
 }
@@ -42,7 +47,7 @@ export interface ChatResponse {
   };
   securityInfo?: {
     inputSanitized: boolean;
-    riskLevel: 'low' | 'medium' | 'high';
+    riskLevel: "low" | "medium" | "high";
   };
 }
 
@@ -107,17 +112,98 @@ const ATTACK_PATTERNS = {
 
 // Mots-clés autorisés pour la recherche d'hôtels (whitelist)
 const HOTEL_KEYWORDS = {
-  cities: ['paris', 'moroni', 'tokyo', 'new york', 'londres', 'london', 'dubai', 'rome', 'barcelone', 'barcelona', 'amsterdam', 'berlin', 'madrid', 'lisbonne', 'lisbon', 'prague', 'vienne', 'vienna', 'budapest', 'athenes', 'athens'],
-  roomTypes: ['simple', 'double', 'suite', 'familiale', 'family', 'deluxe', 'standard', 'premium', 'penthouse'],
-  amenities: ['wifi', 'piscine', 'pool', 'spa', 'gym', 'restaurant', 'parking', 'climatisation', 'ac', 'minibar', 'vue mer', 'sea view', 'balcon', 'balcony', 'terrasse', 'terrace'],
-  actions: ['cherche', 'recherche', 'trouve', 'montre', 'affiche', 'liste', 'voir', 'search', 'find', 'show', 'list', 'display', 'disponible', 'available', 'réserver', 'book'],
-  filters: ['étoiles', 'stars', 'prix', 'price', 'budget', 'personnes', 'guests', 'adultes', 'adults', 'enfants', 'children', 'nuits', 'nights'],
+  cities: [
+    "paris",
+    "moroni",
+    "tokyo",
+    "new york",
+    "londres",
+    "london",
+    "dubai",
+    "rome",
+    "barcelone",
+    "barcelona",
+    "amsterdam",
+    "berlin",
+    "madrid",
+    "lisbonne",
+    "lisbon",
+    "prague",
+    "vienne",
+    "vienna",
+    "budapest",
+    "athenes",
+    "athens",
+  ],
+  roomTypes: [
+    "simple",
+    "double",
+    "suite",
+    "familiale",
+    "family",
+    "deluxe",
+    "standard",
+    "premium",
+    "penthouse",
+  ],
+  amenities: [
+    "wifi",
+    "piscine",
+    "pool",
+    "spa",
+    "gym",
+    "restaurant",
+    "parking",
+    "climatisation",
+    "ac",
+    "minibar",
+    "vue mer",
+    "sea view",
+    "balcon",
+    "balcony",
+    "terrasse",
+    "terrace",
+  ],
+  actions: [
+    "cherche",
+    "recherche",
+    "trouve",
+    "montre",
+    "affiche",
+    "liste",
+    "voir",
+    "search",
+    "find",
+    "show",
+    "list",
+    "display",
+    "disponible",
+    "available",
+    "réserver",
+    "book",
+  ],
+  filters: [
+    "étoiles",
+    "stars",
+    "prix",
+    "price",
+    "budget",
+    "personnes",
+    "guests",
+    "adultes",
+    "adults",
+    "enfants",
+    "children",
+    "nuits",
+    "nights",
+  ],
 };
 
 @Injectable()
 export class ChatbotService {
   private conversationHistory: Map<string, ChatMessage[]> = new Map();
-  private requestCounts: Map<string, { count: number; resetAt: Date }> = new Map();
+  private requestCounts: Map<string, { count: number; resetAt: Date }> =
+    new Map();
 
   // Limites de sécurité
   private readonly MAX_MESSAGE_LENGTH = 500;
@@ -130,7 +216,11 @@ export class ChatbotService {
   /**
    * Point d'entrée principal - Traite un message utilisateur de manière sécurisée
    */
-  async processMessage(sessionId: string, userMessage: string, clientIp?: string): Promise<ChatResponse> {
+  async processMessage(
+    sessionId: string,
+    userMessage: string,
+    clientIp?: string,
+  ): Promise<ChatResponse> {
     // 1. Rate limiting (OWASP LLM04, MITRE AML.T0040)
     this.checkRateLimit(sessionId);
 
@@ -138,13 +228,14 @@ export class ChatbotService {
     const sanitizationResult = this.sanitizeInput(userMessage);
 
     if (sanitizationResult.blocked) {
-      this.logSecurityEvent('BLOCKED_INPUT', sessionId, userMessage, clientIp);
+      this.logSecurityEvent("BLOCKED_INPUT", sessionId, userMessage, clientIp);
       return {
-        type: 'error',
-        message: 'Votre message contient des éléments non autorisés. Veuillez reformuler votre demande de recherche d\'hôtel.',
+        type: "error",
+        message:
+          "Votre message contient des éléments non autorisés. Veuillez reformuler votre demande de recherche d'hôtel.",
         securityInfo: {
           inputSanitized: true,
-          riskLevel: 'high',
+          riskLevel: "high",
         },
       };
     }
@@ -155,13 +246,21 @@ export class ChatbotService {
     const intent = this.analyzeIntent(sanitizedMessage);
 
     // 4. Exécution de l'action autorisée
-    const response = await this.executeIntent(intent, sanitizedMessage, sessionId);
+    const response = await this.executeIntent(
+      intent,
+      sanitizedMessage,
+      sessionId,
+    );
 
     // 5. Validation de la sortie (OWASP LLM02, LLM06)
     const validatedResponse = this.validateOutput(response);
 
     // 6. Mise à jour de l'historique de conversation
-    this.updateConversationHistory(sessionId, userMessage, validatedResponse.message);
+    this.updateConversationHistory(
+      sessionId,
+      userMessage,
+      validatedResponse.message,
+    );
 
     return validatedResponse;
   }
@@ -182,7 +281,9 @@ export class ChatbotService {
     }
 
     if (requestData.count >= this.MAX_REQUESTS_PER_MINUTE) {
-      throw new BadRequestException('Trop de requêtes. Veuillez patienter avant de réessayer.');
+      throw new BadRequestException(
+        "Trop de requêtes. Veuillez patienter avant de réessayer.",
+      );
     }
 
     requestData.count++;
@@ -191,16 +292,20 @@ export class ChatbotService {
   /**
    * Sanitisation des entrées utilisateur (OWASP LLM01, MITRE AML.T0043, AML.T0048)
    */
-  private sanitizeInput(input: string): { sanitized: string; blocked: boolean; threats: string[] } {
+  private sanitizeInput(input: string): {
+    sanitized: string;
+    blocked: boolean;
+    threats: string[];
+  } {
     const threats: string[] = [];
 
     // Vérification de la longueur
     if (!input || input.length === 0) {
-      return { sanitized: '', blocked: false, threats: [] };
+      return { sanitized: "", blocked: false, threats: [] };
     }
 
     if (input.length > this.MAX_MESSAGE_LENGTH) {
-      return { sanitized: '', blocked: true, threats: ['MESSAGE_TOO_LONG'] };
+      return { sanitized: "", blocked: true, threats: ["MESSAGE_TOO_LONG"] };
     }
 
     // Détection des patterns d'attaque
@@ -213,15 +318,15 @@ export class ChatbotService {
     }
 
     if (threats.length > 0) {
-      return { sanitized: '', blocked: true, threats };
+      return { sanitized: "", blocked: true, threats };
     }
 
     // Sanitisation basique
-    let sanitized = input
+    const sanitized = input
       .trim()
-      .replace(/[<>]/g, '') // Suppression des chevrons
-      .replace(/[\x00-\x1F\x7F]/g, '') // Suppression des caractères de contrôle
-      .replace(/\s+/g, ' ') // Normalisation des espaces
+      .replace(/[<>]/g, "") // Suppression des chevrons
+      .replace(/[\x00-\x1F\x7F]/g, "") // Suppression des caractères de contrôle
+      .replace(/\s+/g, " ") // Normalisation des espaces
       .substring(0, this.MAX_MESSAGE_LENGTH);
 
     // Vérification que le message contient des mots-clés liés aux hôtels
@@ -229,7 +334,7 @@ export class ChatbotService {
 
     if (!hasHotelContext && sanitized.length > 20) {
       // Message long sans contexte hôtelier - potentiellement suspect
-      threats.push('NO_HOTEL_CONTEXT');
+      threats.push("NO_HOTEL_CONTEXT");
     }
 
     return { sanitized, blocked: false, threats };
@@ -245,16 +350,28 @@ export class ChatbotService {
       ...HOTEL_KEYWORDS.amenities,
       ...HOTEL_KEYWORDS.actions,
       ...HOTEL_KEYWORDS.filters,
-      'hotel', 'hôtel', 'chambre', 'room', 'réservation', 'booking', 'séjour', 'stay',
+      "hotel",
+      "hôtel",
+      "chambre",
+      "room",
+      "réservation",
+      "booking",
+      "séjour",
+      "stay",
     ];
 
-    return allKeywords.some(keyword => message.includes(keyword.toLowerCase()));
+    return allKeywords.some((keyword) =>
+      message.includes(keyword.toLowerCase()),
+    );
   }
 
   /**
    * Analyse l'intention de l'utilisateur (limitée aux actions autorisées)
    */
-  private analyzeIntent(message: string): { action: string; params: SearchFilters } {
+  private analyzeIntent(message: string): {
+    action: string;
+    params: SearchFilters;
+  } {
     const lowerMessage = message.toLowerCase();
     const params: SearchFilters = {};
 
@@ -273,13 +390,17 @@ export class ChatbotService {
     }
 
     // Extraction du nombre de personnes
-    const guestsMatch = lowerMessage.match(/(\d+)\s*(personnes?|guests?|adultes?|adults?)/);
+    const guestsMatch = lowerMessage.match(
+      /(\d+)\s*(personnes?|guests?|adultes?|adults?)/,
+    );
     if (guestsMatch) {
       params.guests = parseInt(guestsMatch[1], 10);
     }
 
     // Extraction des dates (format simple)
-    const dateMatch = lowerMessage.match(/du\s+(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\s+au\s+(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/);
+    const dateMatch = lowerMessage.match(
+      /du\s+(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)\s+au\s+(\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?)/,
+    );
     if (dateMatch) {
       params.checkIn = this.parseDate(dateMatch[1]);
       params.checkOut = this.parseDate(dateMatch[2]);
@@ -297,17 +418,26 @@ export class ChatbotService {
     }
 
     // Extraction du budget maximum
-    const priceMatch = lowerMessage.match(/(?:moins\s+de|max(?:imum)?|budget)\s*:?\s*(\d+)\s*(?:€|euros?)?/i);
+    const priceMatch = lowerMessage.match(
+      /(?:moins\s+de|max(?:imum)?|budget)\s*:?\s*(\d+)\s*(?:€|euros?)?/i,
+    );
     if (priceMatch) {
       params.maxPrice = parseInt(priceMatch[1], 10);
     }
 
     // Détermination de l'action
-    let action = 'search';
-    if (lowerMessage.includes('aide') || lowerMessage.includes('help') || lowerMessage.includes('comment')) {
-      action = 'help';
-    } else if (lowerMessage.includes('disponible') || lowerMessage.includes('available')) {
-      action = 'check_availability';
+    let action = "search";
+    if (
+      lowerMessage.includes("aide") ||
+      lowerMessage.includes("help") ||
+      lowerMessage.includes("comment")
+    ) {
+      action = "help";
+    } else if (
+      lowerMessage.includes("disponible") ||
+      lowerMessage.includes("available")
+    ) {
+      action = "check_availability";
     }
 
     return { action, params };
@@ -319,71 +449,88 @@ export class ChatbotService {
   private parseDate(dateStr: string): string {
     const parts = dateStr.split(/[\/\-]/);
     if (parts.length >= 2) {
-      const day = parts[0].padStart(2, '0');
-      const month = parts[1].padStart(2, '0');
-      const year = parts[2] ? (parts[2].length === 2 ? '20' + parts[2] : parts[2]) : new Date().getFullYear().toString();
+      const day = parts[0].padStart(2, "0");
+      const month = parts[1].padStart(2, "0");
+      const year = parts[2]
+        ? parts[2].length === 2
+          ? "20" + parts[2]
+          : parts[2]
+        : new Date().getFullYear().toString();
       return `${year}-${month}-${day}`;
     }
-    return '';
+    return "";
   }
 
   /**
    * Exécute l'intention identifiée (actions en lecture seule - OWASP LLM08)
    */
-  private async executeIntent(intent: { action: string; params: SearchFilters }, originalMessage: string, sessionId: string): Promise<ChatResponse> {
+  private async executeIntent(
+    intent: { action: string; params: SearchFilters },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _originalMessage: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _sessionId: string,
+  ): Promise<ChatResponse> {
     const supabase = this.supabaseService.getClient();
 
     switch (intent.action) {
-      case 'help':
+      case "help":
         return this.getHelpResponse();
 
-      case 'check_availability':
-      case 'search':
+      case "check_availability":
+      case "search":
       default:
         // Construction de la requête de recherche
         let query = supabase
-          .from('hotels')
-          .select('id, name, slug, city, country, stars, short_description, cover_image, amenities, is_active, is_featured')
-          .eq('is_active', true)
-          .order('is_featured', { ascending: false })
-          .order('stars', { ascending: false })
+          .from("hotels")
+          .select(
+            "id, name, slug, city, country, stars, short_description, cover_image, amenities, is_active, is_featured",
+          )
+          .eq("is_active", true)
+          .order("is_featured", { ascending: false })
+          .order("stars", { ascending: false })
           .limit(10);
 
         // Application des filtres
         if (intent.params.city) {
-          query = query.ilike('city', `%${intent.params.city}%`);
+          query = query.ilike("city", `%${intent.params.city}%`);
         }
 
         if (intent.params.minStars) {
-          query = query.gte('stars', intent.params.minStars);
+          query = query.gte("stars", intent.params.minStars);
         }
 
         const { data: hotels, error } = await query;
 
         if (error) {
-          console.error('Database error:', error);
+          console.error("Database error:", error);
           return {
-            type: 'error',
-            message: 'Une erreur est survenue lors de la recherche. Veuillez réessayer.',
-            securityInfo: { inputSanitized: true, riskLevel: 'low' },
+            type: "error",
+            message:
+              "Une erreur est survenue lors de la recherche. Veuillez réessayer.",
+            securityInfo: { inputSanitized: true, riskLevel: "low" },
           };
         }
 
         // Construction de la réponse
         const filterDescription = this.buildFilterDescription(intent.params);
-        const message = hotels && hotels.length > 0
-          ? `J'ai trouvé ${hotels.length} hôtel${hotels.length > 1 ? 's' : ''} ${filterDescription}. Voici les résultats :`
-          : `Aucun hôtel trouvé ${filterDescription}. Essayez avec d'autres critères.`;
+        const message =
+          hotels && hotels.length > 0
+            ? `J'ai trouvé ${hotels.length} hôtel${hotels.length > 1 ? "s" : ""} ${filterDescription}. Voici les résultats :`
+            : `Aucun hôtel trouvé ${filterDescription}. Essayez avec d'autres critères.`;
 
         return {
-          type: 'hotel_list',
+          type: "hotel_list",
           message,
           data: {
             hotels: hotels || [],
             filters: intent.params,
-            suggestions: this.generateSuggestions(intent.params, hotels?.length || 0),
+            suggestions: this.generateSuggestions(
+              intent.params,
+              hotels?.length || 0,
+            ),
           },
-          securityInfo: { inputSanitized: true, riskLevel: 'low' },
+          securityInfo: { inputSanitized: true, riskLevel: "low" },
         };
     }
   }
@@ -401,24 +548,29 @@ export class ChatbotService {
       parts.push(`${params.minStars} étoiles minimum`);
     }
     if (params.guests) {
-      parts.push(`pour ${params.guests} personne${params.guests > 1 ? 's' : ''}`);
+      parts.push(
+        `pour ${params.guests} personne${params.guests > 1 ? "s" : ""}`,
+      );
     }
     if (params.amenities && params.amenities.length > 0) {
-      parts.push(`avec ${params.amenities.join(', ')}`);
+      parts.push(`avec ${params.amenities.join(", ")}`);
     }
 
-    return parts.length > 0 ? parts.join(', ') : '';
+    return parts.length > 0 ? parts.join(", ") : "";
   }
 
   /**
    * Génère des suggestions pour affiner la recherche
    */
-  private generateSuggestions(currentParams: SearchFilters, resultCount: number): string[] {
+  private generateSuggestions(
+    currentParams: SearchFilters,
+    resultCount: number,
+  ): string[] {
     const suggestions: string[] = [];
 
     if (resultCount === 0) {
-      suggestions.push('Essayez une recherche sans filtre de ville');
-      suggestions.push('Réduisez le nombre d\'étoiles minimum');
+      suggestions.push("Essayez une recherche sans filtre de ville");
+      suggestions.push("Réduisez le nombre d'étoiles minimum");
     } else if (resultCount > 5) {
       if (!currentParams.minStars) {
         suggestions.push('Filtrer par nombre d\'étoiles (ex: "3 étoiles")');
@@ -429,7 +581,9 @@ export class ChatbotService {
     }
 
     if (!currentParams.amenities || currentParams.amenities.length === 0) {
-      suggestions.push('Ajoutez des équipements souhaités (piscine, spa, wifi...)');
+      suggestions.push(
+        "Ajoutez des équipements souhaités (piscine, spa, wifi...)",
+      );
     }
 
     return suggestions.slice(0, 3);
@@ -440,7 +594,7 @@ export class ChatbotService {
    */
   private getHelpResponse(): ChatResponse {
     return {
-      type: 'help',
+      type: "help",
       message: `Je suis votre assistant de recherche d'hôtels. Voici comment je peux vous aider :
 
 **Recherche simple :**
@@ -457,12 +611,12 @@ export class ChatbotService {
 Je ne peux vous aider que pour la recherche d'hôtels. Pour toute autre demande, veuillez contacter notre service client.`,
       data: {
         suggestions: [
-          'Hôtels à Paris',
-          'Hôtels 5 étoiles avec piscine',
-          'Hôtels disponibles ce week-end',
+          "Hôtels à Paris",
+          "Hôtels 5 étoiles avec piscine",
+          "Hôtels disponibles ce week-end",
         ],
       },
-      securityInfo: { inputSanitized: true, riskLevel: 'low' },
+      securityInfo: { inputSanitized: true, riskLevel: "low" },
     };
   }
 
@@ -471,19 +625,25 @@ Je ne peux vous aider que pour la recherche d'hôtels. Pour toute autre demande,
    */
   private validateOutput(response: ChatResponse): ChatResponse {
     // S'assurer que seuls les types de réponse autorisés sont retournés
-    const allowedTypes: AllowedResponseType[] = ['hotel_list', 'hotel_filter', 'availability_check', 'error', 'help'];
+    const allowedTypes: AllowedResponseType[] = [
+      "hotel_list",
+      "hotel_filter",
+      "availability_check",
+      "error",
+      "help",
+    ];
 
     if (!allowedTypes.includes(response.type)) {
       return {
-        type: 'error',
-        message: 'Une erreur est survenue. Veuillez réessayer.',
-        securityInfo: { inputSanitized: true, riskLevel: 'medium' },
+        type: "error",
+        message: "Une erreur est survenue. Veuillez réessayer.",
+        securityInfo: { inputSanitized: true, riskLevel: "medium" },
       };
     }
 
     // Filtrer les données sensibles des hôtels
     if (response.data?.hotels) {
-      response.data.hotels = response.data.hotels.map(hotel => ({
+      response.data.hotels = response.data.hotels.map((hotel) => ({
         id: hotel.id,
         name: hotel.name,
         slug: hotel.slug,
@@ -500,8 +660,8 @@ Je ne peux vous aider que pour la recherche d'hôtels. Pour toute autre demande,
 
     // Sanitisation du message de sortie
     response.message = response.message
-      .replace(/<script[^>]*>.*?<\/script>/gi, '')
-      .replace(/javascript:/gi, '')
+      .replace(/<script[^>]*>.*?<\/script>/gi, "")
+      .replace(/javascript:/gi, "")
       .substring(0, 2000);
 
     return response;
@@ -510,12 +670,16 @@ Je ne peux vous aider que pour la recherche d'hôtels. Pour toute autre demande,
   /**
    * Mise à jour de l'historique de conversation
    */
-  private updateConversationHistory(sessionId: string, userMessage: string, assistantMessage: string): void {
+  private updateConversationHistory(
+    sessionId: string,
+    userMessage: string,
+    assistantMessage: string,
+  ): void {
     let history = this.conversationHistory.get(sessionId) || [];
 
     history.push(
-      { role: 'user', content: userMessage, timestamp: new Date() },
-      { role: 'assistant', content: assistantMessage, timestamp: new Date() }
+      { role: "user", content: userMessage, timestamp: new Date() },
+      { role: "assistant", content: assistantMessage, timestamp: new Date() },
     );
 
     // Limiter la taille de l'historique
@@ -537,7 +701,10 @@ Je ne peux vous aider que pour la recherche d'hôtels. Pour toute autre demande,
 
     for (const [sessionId, history] of this.conversationHistory.entries()) {
       const lastMessage = history[history.length - 1];
-      if (lastMessage && now - lastMessage.timestamp.getTime() > this.SESSION_TIMEOUT_MS) {
+      if (
+        lastMessage &&
+        now - lastMessage.timestamp.getTime() > this.SESSION_TIMEOUT_MS
+      ) {
         this.conversationHistory.delete(sessionId);
         this.requestCounts.delete(sessionId);
       }
@@ -547,16 +714,21 @@ Je ne peux vous aider que pour la recherche d'hôtels. Pour toute autre demande,
   /**
    * Journalisation des événements de sécurité (MITRE AML.T0042)
    */
-  private logSecurityEvent(eventType: string, sessionId: string, input: string, clientIp?: string): void {
+  private logSecurityEvent(
+    eventType: string,
+    sessionId: string,
+    input: string,
+    clientIp?: string,
+  ): void {
     const logEntry = {
       timestamp: new Date().toISOString(),
       eventType,
-      sessionId: sessionId.substring(0, 8) + '...', // Anonymisation partielle
-      inputPreview: input.substring(0, 50) + (input.length > 50 ? '...' : ''),
-      clientIp: clientIp ? this.anonymizeIp(clientIp) : 'unknown',
+      sessionId: sessionId.substring(0, 8) + "...", // Anonymisation partielle
+      inputPreview: input.substring(0, 50) + (input.length > 50 ? "..." : ""),
+      clientIp: clientIp ? this.anonymizeIp(clientIp) : "unknown",
     };
 
-    console.warn('[SECURITY EVENT]', JSON.stringify(logEntry));
+    console.warn("[SECURITY EVENT]", JSON.stringify(logEntry));
 
     // TODO: Envoyer vers un système de SIEM en production
   }
@@ -565,11 +737,11 @@ Je ne peux vous aider que pour la recherche d'hôtels. Pour toute autre demande,
    * Anonymisation partielle de l'adresse IP
    */
   private anonymizeIp(ip: string): string {
-    const parts = ip.split('.');
+    const parts = ip.split(".");
     if (parts.length === 4) {
       return `${parts[0]}.${parts[1]}.xxx.xxx`;
     }
-    return 'anonymized';
+    return "anonymized";
   }
 
   /**

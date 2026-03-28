@@ -2,7 +2,38 @@
   "permissions": {
     "allow": [
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run:*)",
+      "Bash(git restore:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(curl:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(find:*)",
+      "Bash(node -e:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(pip show reportlab python-docx)",
+      "Bash(python -m pip show reportlab python-docx)",
+      "Bash(python -m pip install reportlab python-docx)",
+      "Bash(python generate_invoices.py)",
+      "Bash(ls -lh \"C:\\\\Users\\\\elias\\\\Downloads\\\\Presta_Fact_Fevrier_2026\"*)",
+      "Bash(ls -lh /c/Users/elias/Downloads/Presta_Fact_Fevrier_2026*)",
+      "Bash(python -c \":*)",
+      "Bash(python gen_factures_fev2026.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python gen_factures_fev2026.py)",
+      "Bash(python -m pip install docx2pdf)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c \":*)",
+      "Bash(PYTHONIOENCODING=utf-8 python gen_factures_v2.py)",
+      "Bash(python -m pip install pypdf)",
+      "Bash(node generate.js)",
+      "Bash(npm init -y)",
+      "Bash(python \"/c/Users/elias/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/51d09ab4-b42c-48c2-83e9-5bbff911a821/8e81c35a-026a-4a60-99be-4ea427ae4d72/skills/docx/scripts/office/validate.py\" Formation_CCNA_200-301_Complete.docx)",
+      "Bash(pip install defusedxml)",
+      "Bash(python -m pip install defusedxml)",
+      "Bash(git add:*)"
     ]
   }
 }

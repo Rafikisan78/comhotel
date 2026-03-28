@@ -1,6 +1,6 @@
-import { registerAs } from '@nestjs/config';
+import { registerAs } from "@nestjs/config";
 
-export default registerAs('supabase', () => ({
+export default registerAs("supabase", () => ({
   url: process.env.SUPABASE_URL,
   serviceKey: process.env.SUPABASE_SERVICE_KEY,
   anonKey: process.env.SUPABASE_ANON_KEY,

@@ -1,8 +1,12 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
-import { CreateUserDto } from '../users/dto/create-user.dto';
-import { HashUtil } from '../../common/utils/hash.util';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { UsersService } from "../users/users.service";
+import { CreateUserDto } from "../users/dto/create-user.dto";
+import { HashUtil } from "../../common/utils/hash.util";
 
 @Injectable()
 export class AuthService {
@@ -14,11 +18,11 @@ export class AuthService {
   async register(createUserDto: CreateUserDto) {
     // Valider les données
     if (!createUserDto.email || !createUserDto.password) {
-      throw new BadRequestException('Email et mot de passe requis');
+      throw new BadRequestException("Email et mot de passe requis");
     }
 
     if (!createUserDto.firstName || !createUserDto.lastName) {
-      throw new BadRequestException('Prénom et nom requis');
+      throw new BadRequestException("Prénom et nom requis");
     }
 
     // Créer l'utilisateur (le hash du mot de passe est géré dans UsersService)
@@ -37,7 +41,12 @@ export class AuthService {
     const user = await this.usersService.findByEmail(credentials.email);
 
     if (!user || !user.password) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
+    }
+
+    // Vérifier si le compte est actif
+    if (!user.isActive) {
+      throw new UnauthorizedException("Account is inactive");
     }
 
     // Vérifier le mot de passe avec bcrypt
@@ -47,13 +56,14 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
 
     const token = this.generateToken(user.id, user.email, user.role);
 
     // Exclure le mot de passe de la réponse
-    const { password, ...userWithoutPassword } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _password, ...userWithoutPassword } = user;
 
     return {
       user: userWithoutPassword,

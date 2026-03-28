@@ -1,13 +1,12 @@
-import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { EmailConfirmationController } from './email-confirmation.controller';
-import { UsersModule } from '../users/users.module';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { SupabaseService } from '../../common/database/supabase.service';
+import { Module } from "@nestjs/common";
+import { JwtModule } from "@nestjs/jwt";
+import { PassportModule } from "@nestjs/passport";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { AuthController } from "./auth.controller";
+import { AuthService } from "./auth.service";
+import { UsersModule } from "../users/users.module";
+import { JwtStrategy } from "./strategies/jwt.strategy";
+import { SupabaseService } from "../../common/database/supabase.service";
 
 @Module({
   imports: [
@@ -16,15 +15,15 @@ import { SupabaseService } from '../../common/database/supabase.service';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.get<string>("JWT_SECRET"),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRATION') || '7d',
+          expiresIn: configService.get<string>("JWT_EXPIRATION") || "7d",
         },
       }),
       inject: [ConfigService],
     }),
   ],
-  controllers: [AuthController, EmailConfirmationController],
+  controllers: [AuthController],
   providers: [AuthService, JwtStrategy, SupabaseService],
   exports: [AuthService],
 })

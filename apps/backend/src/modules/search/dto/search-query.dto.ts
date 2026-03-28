@@ -1,5 +1,13 @@
-import { IsOptional, IsString, IsNumber, IsDateString, IsArray, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsDateString,
+  IsArray,
+  Min,
+  Max,
+} from "class-validator";
+import { Type } from "class-transformer";
 
 export class SearchQueryDto {
   @IsOptional()
@@ -63,9 +71,9 @@ export class SearchQueryDto {
 
   @IsOptional()
   @IsString()
-  sortBy?: 'price' | 'rating' | 'name' = 'rating';
+  sortBy?: "price" | "rating" | "name" = "rating";
 
   @IsOptional()
   @IsString()
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  sortOrder?: "asc" | "desc" = "desc";
 }

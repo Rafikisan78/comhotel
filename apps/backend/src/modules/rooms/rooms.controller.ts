@@ -1,7 +1,16 @@
-import { Controller, Get, Post, Put, Patch, Delete, Param, Body } from '@nestjs/common';
-import { RoomsService } from './rooms.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Param,
+  Body,
+} from "@nestjs/common";
+import { RoomsService } from "./rooms.service";
 
-@Controller('rooms')
+@Controller("rooms")
 export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
@@ -15,23 +24,23 @@ export class RoomsController {
     return this.roomsService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
+  @Get(":id")
+  findOne(@Param("id") id: string) {
     return this.roomsService.findOne(id);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() updateRoomDto: any) {
+  @Put(":id")
+  update(@Param("id") id: string, @Body() updateRoomDto: any) {
     return this.roomsService.update(id, updateRoomDto);
   }
 
-  @Patch(':id')
-  partialUpdate(@Param('id') id: string, @Body() updateRoomDto: any) {
+  @Patch(":id")
+  partialUpdate(@Param("id") id: string, @Body() updateRoomDto: any) {
     return this.roomsService.update(id, updateRoomDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
+  @Delete(":id")
+  remove(@Param("id") id: string) {
     return this.roomsService.remove(id);
   }
 }

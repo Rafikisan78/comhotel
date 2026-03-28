@@ -19,9 +19,10 @@ export default function LoginPage() {
     try {
       const response = await apiClient.post('/auth/login', { email, password })
 
-      // Stocker le token et l'ID utilisateur
+      // Stocker le token, l'ID et le rôle utilisateur
       localStorage.setItem('access_token', response.data.accessToken)
       localStorage.setItem('user_id', response.data.user.id)
+      localStorage.setItem('user_role', response.data.user.role)
 
       // Rediriger vers la page de profil
       router.push('/profile')

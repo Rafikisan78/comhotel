@@ -1,4 +1,11 @@
-import { IsString, IsOptional, MaxLength, Matches, IsEmail, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MaxLength,
+  Matches,
+  IsEmail,
+  MinLength,
+} from "class-validator";
 
 export class UpdateUserDto {
   @IsOptional()
@@ -9,19 +16,24 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @MinLength(12, {
-    message: 'Le mot de passe doit contenir au moins 12 caractères',
+    message: "Le mot de passe doit contenir au moins 12 caractères",
   })
   @MaxLength(128)
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/, {
-    message: 'Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)',
-  })
+  @Matches(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/,
+    {
+      message:
+        "Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)",
+    },
+  )
   password?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(100)
   @Matches(/^[a-zA-ZÀ-ÿ\s'-]+$/, {
-    message: 'Le prénom ne peut contenir que des lettres, espaces, tirets et apostrophes',
+    message:
+      "Le prénom ne peut contenir que des lettres, espaces, tirets et apostrophes",
   })
   firstName?: string;
 
@@ -29,7 +41,8 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(100)
   @Matches(/^[a-zA-ZÀ-ÿ\s'-]+$/, {
-    message: 'Le nom ne peut contenir que des lettres, espaces, tirets et apostrophes',
+    message:
+      "Le nom ne peut contenir que des lettres, espaces, tirets et apostrophes",
   })
   lastName?: string;
 

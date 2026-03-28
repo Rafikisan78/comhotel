@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import HotelSearchChat from '@/components/HotelSearchChat';
+import { Breadcrumb, Alert, HotelCardSkeleton } from '@/components/ui';
 
 interface Hotel {
   id: string;
@@ -51,36 +52,70 @@ export default function HotelsPage() {
   };
 
   const renderStars = (rating: number) => {
-    return '⭐'.repeat(rating);
+    return (
+      <span aria-label={`${rating} étoiles`}>
+        {'⭐'.repeat(rating)}
+      </span>
+    );
   };
 
+  // Skeleton pendant le chargement
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des hôtels...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Breadcrumb */}
+          <Breadcrumb
+            items={[
+              { label: 'Accueil', href: '/' },
+              { label: 'Hôtels' },
+            ]}
+            className="mb-6"
+          />
+
+          {/* Header skeleton */}
+          <div className="mb-8">
+            <div className="skeleton skeleton-title w-48 h-9 mb-2" />
+            <div className="skeleton skeleton-text w-72" />
+          </div>
+
+          {/* Grille de skeletons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <HotelCardSkeleton key={i} />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Breadcrumb - Guidage */}
+        <Breadcrumb
+          items={[
+            { label: 'Accueil', href: '/' },
+            { label: 'Hôtels' },
+          ]}
+          className="mb-6"
+        />
+
         {/* Header */}
-        <div className="mb-8 flex justify-between items-start">
+        <div className="mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Nos Hôtels
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               Découvrez notre sélection d'hôtels de qualité
             </p>
           </div>
           <button
             onClick={() => setShowChat(!showChat)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="btn btn-primary"
+            aria-pressed={showChat}
           >
             {showChat ? '📋 Voir la liste complète' : '💬 Assistant de recherche'}
           </button>
@@ -88,86 +123,116 @@ export default function HotelsPage() {
 
         {/* Chatbot de recherche sécurisé */}
         {showChat ? (
-          <div className="mb-8">
+          <div className="mb-8 animate-fade-in">
             <HotelSearchChat />
-            <p className="text-center text-sm text-gray-500 mt-4">
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
               Utilisez l'assistant pour rechercher des hôtels par ville, étoiles, équipements...
             </p>
           </div>
         ) : (
-          <>
-            {/* Messages d'erreur */}
+          <div className="animate-fade-in">
+            {/* Messages d'erreur - Gestion des erreurs */}
             {error && (
-              <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+              <Alert
+                type="error"
+                title="Erreur de chargement"
+                onClose={() => setError('')}
+                className="mb-6"
+              >
                 {error}
-              </div>
+                <button
+                  onClick={fetchHotels}
+                  className="ml-2 underline hover:no-underline"
+                >
+                  Réessayer
+                </button>
+              </Alert>
             )}
 
             {/* Liste des hôtels */}
             {hotels.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg shadow">
-                <p className="text-gray-500 text-lg">Aucun hôtel trouvé</p>
-                <button
-                  onClick={() => setShowChat(true)}
-                  className="mt-4 text-blue-600 hover:underline"
-                >
-                  Utiliser l'assistant de recherche
-                </button>
+              <div className="text-center py-12 card">
+                <div className="card-body">
+                  <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">
+                    Aucun hôtel trouvé
+                  </p>
+                  <button
+                    onClick={() => setShowChat(true)}
+                    className="btn btn-primary"
+                  >
+                    Utiliser l'assistant de recherche
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                role="list"
+                aria-label="Liste des hôtels"
+              >
                 {hotels.map((hotel) => (
-                  <div
+                  <article
                     key={hotel.id}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+                    className="card card-interactive cursor-pointer"
                     onClick={() => router.push(`/hotels/${hotel.slug}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        router.push(`/hotels/${hotel.slug}`);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="listitem"
+                    aria-label={`${hotel.name}, ${hotel.star_rating} étoiles, ${hotel.city}`}
                   >
                     {/* Image */}
                     <div className="h-48 bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center text-white text-4xl">
                       {hotel.cover_image ? (
                         <img
                           src={hotel.cover_image}
-                          alt={hotel.name}
+                          alt=""
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       ) : (
-                        '🏨'
+                        <span aria-hidden="true">🏨</span>
                       )}
                     </div>
 
                     {/* Contenu */}
-                    <div className="p-6">
+                    <div className="card-body">
                       {/* Badge Featured */}
                       {hotel.is_featured && (
-                        <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full mb-2">
-                          ⭐ En vedette
+                        <span className="badge badge-warning mb-2">
+                          En vedette
                         </span>
                       )}
 
                       {/* Nom et étoiles */}
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                         {hotel.name}
-                      </h3>
+                      </h2>
                       <div className="text-yellow-500 mb-2">
                         {renderStars(hotel.star_rating)}
                       </div>
 
                       {/* Localisation */}
-                      <p className="text-gray-600 text-sm mb-3">
-                        📍 {hotel.city}, {hotel.country}
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                        <span aria-hidden="true">📍</span>{' '}
+                        {hotel.city}, {hotel.country}
                       </p>
 
                       {/* Description courte */}
                       {hotel.short_description && (
-                        <p className="text-gray-700 text-sm mb-4 line-clamp-2">
+                        <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 line-clamp-2">
                           {hotel.short_description}
                         </p>
                       )}
 
                       {/* Note moyenne */}
                       {hotel.average_rating && hotel.average_rating > 0 && (
-                        <div className="flex items-center text-sm text-gray-600 mb-4">
-                          <span className="font-semibold text-blue-600 mr-1">
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-4">
+                          <span className="font-semibold text-blue-600 dark:text-blue-400 mr-1">
                             {hotel.average_rating.toFixed(1)}
                           </span>
                           <span>/ 5</span>
@@ -179,23 +244,33 @@ export default function HotelsPage() {
                         </div>
                       )}
 
-                      {/* Bouton */}
-                      <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                      {/* Bouton - WCAG 2.2 zone de clic */}
+                      <button
+                        className="btn btn-primary w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/hotels/${hotel.slug}`);
+                        }}
+                      >
                         Voir les détails
                       </button>
                     </div>
-                  </div>
+                  </article>
                 ))}
               </div>
             )}
 
             {/* Stats */}
             {hotels.length > 0 && (
-              <div className="mt-8 text-center text-gray-600">
-                {hotels.length} hôtel{hotels.length > 1 ? 's' : ''} disponible{hotels.length > 1 ? 's' : ''}
-              </div>
+              <p
+                className="mt-8 text-center text-gray-600 dark:text-gray-400"
+                aria-live="polite"
+              >
+                {hotels.length} hôtel{hotels.length > 1 ? 's' : ''} disponible
+                {hotels.length > 1 ? 's' : ''}
+              </p>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

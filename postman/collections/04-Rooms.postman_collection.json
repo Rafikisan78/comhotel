@@ -1,0 +1,999 @@
+{
+  "info": {
+    "name": "04 - Rooms API",
+    "description": "Collection complète pour tester l'API Rooms du système ComHotel.\n\n**Fonctionnalités testées:**\n- CRUD complet des chambres\n- Validation des données (RoomType, ViewType, capacités)\n- Filtres (par hôtel, par statut actif/inactif)\n- Soft delete\n- RBAC (Admin, Owner, Guest)\n\n**Variables requises:**\n- `base_url`: URL de l'API (ex: http://localhost:3000)\n- `admin_token`: Token JWT pour admin\n- `owner_token`: Token JWT pour hotel owner\n- `guest_token`: Token JWT pour guest\n- `hotel_id`: ID d'un hôtel existant\n\n🤖 Généré automatiquement par le système agentique ComHotel",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "room_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hotel_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "owner_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "guest_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Setup - Get Tokens",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has accessToken\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('accessToken');",
+                  "    pm.collectionVariables.set('admin_token', jsonData.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@comhotel.com\",\n  \"password\": \"Admin123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login as Hotel Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has accessToken\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('accessToken');",
+                  "    pm.collectionVariables.set('owner_token', jsonData.accessToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@comhotel.com\",\n  \"password\": \"Owner123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rooms CRUD",
+      "item": [
+        {
+          "name": "Create Room - DOUBLE with Sea View",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has room data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('room_number');",
+                  "    pm.expect(jsonData).to.have.property('room_type');",
+                  "    pm.expect(jsonData).to.have.property('base_price');",
+                  "    ",
+                  "    // Save room_id for next requests",
+                  "    pm.collectionVariables.set('room_id', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test(\"Room type is DOUBLE\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.room_type).to.equal('double');",
+                  "});",
+                  "",
+                  "pm.test(\"View type is SEA\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.view_type).to.equal('sea');",
+                  "});",
+                  "",
+                  "pm.test(\"Room is active by default\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.is_active).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test(\"Has created_at and updated_at timestamps\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('created_at');",
+                  "    pm.expect(jsonData).to.have.property('updated_at');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": \"{{hotel_id}}\",\n  \"room_number\": \"101\",\n  \"room_type\": \"double\",\n  \"floor\": 1,\n  \"capacity_adults\": 2,\n  \"capacity_children\": 1,\n  \"capacity_infants\": 0,\n  \"base_price\": 150.00,\n  \"size_sqm\": 25,\n  \"view_type\": \"sea\",\n  \"description\": \"Belle chambre double avec vue sur mer\",\n  \"is_accessible\": false,\n  \"is_smoking_allowed\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Create Room - SUITE Presidential",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Room type is PRESIDENTIAL\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.room_type).to.equal('presidential');",
+                  "});",
+                  "",
+                  "pm.test(\"Capacity is correct\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.capacity_adults).to.equal(4);",
+                  "    pm.expect(jsonData.capacity_children).to.equal(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": \"{{hotel_id}}\",\n  \"room_number\": \"PRES-1\",\n  \"room_type\": \"presidential\",\n  \"floor\": 10,\n  \"capacity_adults\": 4,\n  \"capacity_children\": 2,\n  \"capacity_infants\": 1,\n  \"base_price\": 850.00,\n  \"size_sqm\": 120,\n  \"view_type\": \"sea\",\n  \"description\": \"Suite présidentielle luxueuse\",\n  \"is_accessible\": true,\n  \"is_smoking_allowed\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Get All Rooms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"All rooms are active by default\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    jsonData.forEach(room => {",
+                  "        pm.expect(room.is_active).to.be.true;",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test(\"Rooms are sorted by created_at desc\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 1) {",
+                  "        const firstDate = new Date(jsonData[0].created_at);",
+                  "        const secondDate = new Date(jsonData[1].created_at);",
+                  "        pm.expect(firstDate >= secondDate).to.be.true;",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Get Rooms by Hotel ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All rooms belong to specified hotel\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const hotelId = pm.collectionVariables.get('hotel_id');",
+                  "    jsonData.forEach(room => {",
+                  "        pm.expect(room.hotel_id).to.equal(hotelId);",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test(\"Rooms are sorted by room_number\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 1) {",
+                  "        const roomNumbers = jsonData.map(r => r.room_number);",
+                  "        const sortedNumbers = [...roomNumbers].sort();",
+                  "        pm.expect(JSON.stringify(roomNumbers)).to.equal(JSON.stringify(sortedNumbers));",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rooms?hotel_id={{hotel_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"],
+              "query": [
+                {
+                  "key": "hotel_id",
+                  "value": "{{hotel_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Room by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Room ID matches requested ID\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const roomId = pm.collectionVariables.get('room_id');",
+                  "    pm.expect(jsonData.id).to.equal(roomId);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has all required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const requiredFields = ['id', 'hotel_id', 'room_number', 'room_type', 'capacity_adults', 'base_price', 'is_active', 'created_at', 'updated_at'];",
+                  "    requiredFields.forEach(field => {",
+                  "        pm.expect(jsonData).to.have.property(field);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rooms/{{room_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rooms", "{{room_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Room - Change Price",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Price was updated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.base_price).to.equal(175);",
+                  "});",
+                  "",
+                  "pm.test(\"updated_at timestamp changed\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.updated_at).to.not.equal(jsonData.created_at);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"base_price\": 175.00,\n  \"description\": \"Belle chambre double avec vue sur mer - Prix mis à jour\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms/{{room_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rooms", "{{room_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Soft Delete Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Room was soft deleted\", function () {",
+                  "    // Verify by trying to get the room again",
+                  "    const roomId = pm.collectionVariables.get('room_id');",
+                  "    ",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get('base_url') + '/rooms/' + roomId,",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Authorization': 'Bearer ' + pm.collectionVariables.get('owner_token')",
+                  "        }",
+                  "    }, function (err, response) {",
+                  "        if (!err) {",
+                  "            const room = response.json();",
+                  "            // Room should still exist but is_active should be false",
+                  "            pm.expect(room.is_active).to.be.false;",
+                  "        }",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rooms/{{room_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rooms", "{{room_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Validation Tests",
+      "item": [
+        {
+          "name": "Create Room - Invalid Hotel ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message mentions hotel not found\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message.toLowerCase()).to.include('hotel');",
+                  "    pm.expect(jsonData.message.toLowerCase()).to.include('not found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"room_number\": \"999\",\n  \"room_type\": \"single\",\n  \"capacity_adults\": 1,\n  \"base_price\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Create Room - Invalid Room Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation error for room_type\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.be.an('array');",
+                  "    const hasRoomTypeError = jsonData.message.some(msg => msg.includes('room_type'));",
+                  "    pm.expect(hasRoomTypeError).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": \"{{hotel_id}}\",\n  \"room_number\": \"999\",\n  \"room_type\": \"invalid_type\",\n  \"capacity_adults\": 1,\n  \"base_price\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Create Room - Missing Required Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation errors for required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.be.an('array');",
+                  "    pm.expect(jsonData.message.length).to.be.greaterThan(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_number\": \"999\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Create Room - Invalid Capacity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation error for capacity\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const hasCapacityError = jsonData.message.some(msg => msg.includes('capacity'));",
+                  "    pm.expect(hasCapacityError).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": \"{{hotel_id}}\",\n  \"room_number\": \"999\",\n  \"room_type\": \"double\",\n  \"capacity_adults\": 0,\n  \"base_price\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Get Room - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message mentions room not found\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message.toLowerCase()).to.include('room');",
+                  "    pm.expect(jsonData.message.toLowerCase()).to.include('not found');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rooms/00000000-0000-0000-0000-000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["rooms", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RBAC Tests",
+      "item": [
+        {
+          "name": "Guest Cannot Create Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Access denied message\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message.toLowerCase()).to.include('forbidden').or.include('access').or.include('permission');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{guest_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": \"{{hotel_id}}\",\n  \"room_number\": \"GUEST-TEST\",\n  \"room_type\": \"single\",\n  \"capacity_adults\": 1,\n  \"base_price\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Guest Can View Rooms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{guest_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Guest Cannot Update Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{guest_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"base_price\": 999\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms/{{room_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rooms", "{{room_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Guest Cannot Delete Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{guest_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rooms/{{room_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rooms", "{{room_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Edge Cases",
+      "item": [
+        {
+          "name": "Get Rooms - Filter Inactive",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"All rooms are inactive\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    jsonData.forEach(room => {",
+                  "        pm.expect(room.is_active).to.be.false;",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rooms?is_active=false",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"],
+              "query": [
+                {
+                  "key": "is_active",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Room - All Optional Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Room created with minimal data\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData.room_number).to.equal('MINIMAL');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hotel_id\": \"{{hotel_id}}\",\n  \"room_number\": \"MINIMAL\",\n  \"room_type\": \"single\",\n  \"capacity_adults\": 1,\n  \"base_price\": 80\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["rooms"]
+            }
+          }
+        },
+        {
+          "name": "Update Room - Partial Update",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Only specified field was updated\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.description).to.include('Partiellement');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Partiellement mise à jour\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rooms/{{room_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rooms", "{{room_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,179 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "Email Confirmation Tests",
+  "collectionId": "email_confirmation_collection",
+  "dateExported": "2026-01-02",
+  "version": "1.0",
+  "folders": [],
+  "requests": [
+    {
+      "name": "1. Inscription avec Confirmation Email",
+      "method": "POST",
+      "url": "{{SUPABASE_URL}}/auth/v1/signup",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "{{SUPABASE_ANON_KEY}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"test.confirmation@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"options\": {\n    \"data\": {\n      \"first_name\": \"Test\",\n      \"last_name\": \"Confirmation\"\n    },\n    \"emailRedirectTo\": \"http://localhost:3000/auth/confirm\"\n  }\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200",
+          "action": "equal"
+        }
+      ]
+    },
+    {
+      "name": "2. Vérifier l'état de l'utilisateur (Non confirmé)",
+      "method": "GET",
+      "url": "{{SUPABASE_URL}}/auth/v1/user",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "{{SUPABASE_ANON_KEY}}"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ACCESS_TOKEN}}"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "3. Renvoyer l'email de confirmation",
+      "method": "POST",
+      "url": "{{SUPABASE_URL}}/auth/v1/resend",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "{{SUPABASE_ANON_KEY}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"type\": \"signup\",\n  \"email\": \"test.confirmation@example.com\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200",
+          "action": "equal"
+        }
+      ]
+    },
+    {
+      "name": "4. Login AVANT confirmation (Devrait échouer)",
+      "method": "POST",
+      "url": "{{SUPABASE_URL}}/auth/v1/token?grant_type=password",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "{{SUPABASE_ANON_KEY}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"test.confirmation@example.com\",\n  \"password\": \"TestPassword123!\"\n}",
+        "form": []
+      },
+      "tests": []
+    },
+    {
+      "name": "5. Vérifier le Token OTP (Après clic email)",
+      "method": "POST",
+      "url": "{{SUPABASE_URL}}/auth/v1/verify",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "{{SUPABASE_ANON_KEY}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"type\": \"signup\",\n  \"token_hash\": \"METTRE_LE_TOKEN_DU_LIEN_EMAIL_ICI\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200",
+          "action": "equal"
+        }
+      ]
+    },
+    {
+      "name": "6. Login APRÈS confirmation (Devrait réussir)",
+      "method": "POST",
+      "url": "{{SUPABASE_URL}}/auth/v1/token?grant_type=password",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "{{SUPABASE_ANON_KEY}}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"test.confirmation@example.com\",\n  \"password\": \"TestPassword123!\"\n}",
+        "form": []
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "value": "200",
+          "action": "equal"
+        }
+      ]
+    }
+  ],
+  "environments": [
+    {
+      "name": "Development",
+      "variables": [
+        {
+          "name": "SUPABASE_URL",
+          "value": "https://votre-project-id.supabase.co"
+        },
+        {
+          "name": "SUPABASE_ANON_KEY",
+          "value": "votre_anon_key"
+        },
+        {
+          "name": "ACCESS_TOKEN",
+          "value": ""
+        }
+      ]
+    }
+  ]
+}

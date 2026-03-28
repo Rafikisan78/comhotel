@@ -1,0 +1,1523 @@
+{
+  "info": {
+    "name": "ComHotel v1.8 - Tests Complets (Users + Hotels)",
+    "description": "Collection complète pour tester toutes les fonctionnalités de l'application ComHotel:\n\n- Authentification (Register/Login)\n- Gestion des Users (CRUD, RBAC)\n- Gestion des Hotels (CRUD, RBAC, Recherche)\n- Tests de sécurité RBAC\n- Tests de validation\n\n**IMPORTANT:** Utiliser cette collection avec l'environnement 'ComHotel-Tests-Environment'",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "comhotel-complete-v18",
+    "version": "1.8.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "0️⃣ SETUP - Authentification",
+      "description": "Créer et se connecter avec les utilisateurs de test",
+      "item": [
+        {
+          "name": "0.1 ✅ Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has accessToken\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('accessToken');",
+                  "    pm.collectionVariables.set(\"admin_token\", jsonData.accessToken);",
+                  "    pm.collectionVariables.set(\"access_token\", jsonData.accessToken);",
+                  "    pm.collectionVariables.set(\"admin_id\", jsonData.user.id);",
+                  "});",
+                  "",
+                  "pm.test(\"User role is admin\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.user.role).to.eql('admin');",
+                  "});",
+                  "",
+                  "console.log('✅ Admin connecté - Token sauvegardé');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rfateh@gmail.com\",\n  \"password\": \"AdminSecure2026!@\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "0.2 ✅ Register Hotel Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"new_hotel_owner_id\", jsonData.user.id);",
+                  "pm.collectionVariables.set(\"new_hotel_owner_email\", jsonData.user.email);",
+                  "",
+                  "console.log('✅ Hotel Owner créé - ID: ' + jsonData.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hotelowner{{$timestamp}}@comhotel.test\",\n  \"password\": \"HotelOwner2026!@\",\n  \"firstName\": \"Owner\",\n  \"lastName\": \"Test\",\n  \"phone\": \"+33612345678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "0.3 ✅ Promote to Hotel Owner (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User role updated to hotel_owner\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.role).to.eql('hotel_owner');",
+                  "});",
+                  "",
+                  "console.log('✅ Utilisateur promu hotel_owner');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"hotel_owner\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{new_hotel_owner_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{new_hotel_owner_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "0.4 ✅ Login Hotel Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"hotel_owner_token\", jsonData.accessToken);",
+                  "pm.collectionVariables.set(\"hotel_owner_id\", jsonData.user.id);",
+                  "",
+                  "console.log('✅ Hotel Owner connecté - Token sauvegardé');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{new_hotel_owner_email}}\",\n  \"password\": \"HotelOwner2026!@\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "0.5 ✅ Register Guest",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"guest_token\", jsonData.accessToken);",
+                  "pm.collectionVariables.set(\"guest_id\", jsonData.user.id);",
+                  "",
+                  "console.log('✅ Guest créé - Token sauvegardé');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"guest{{$timestamp}}@comhotel.test\",\n  \"password\": \"Guest2026!@\",\n  \"firstName\": \"Guest\",\n  \"lastName\": \"Test\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1️⃣ USERS - Gestion Complète",
+      "description": "Tests de gestion des utilisateurs (CRUD + RBAC)",
+      "item": [
+        {
+          "name": "1.1 ✅ Liste tous les users (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns array of users\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    pm.expect(jsonData.length).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "console.log('✅ ' + pm.response.json().length + ' utilisateurs trouvés');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/admin/all",
+              "host": ["{{base_url}}"],
+              "path": ["users", "admin", "all"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 ✅ Récupérer user par ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User details returned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('email');",
+                  "    pm.expect(jsonData).to.have.property('role');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{guest_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{guest_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 ✅ Mettre à jour user (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User updated\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.firstName).to.eql('Updated');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"phone\": \"+33699999999\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{guest_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{guest_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 ✅ Soft delete user (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User soft deleted\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.deleted_at).to.not.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{guest_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{guest_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.5 ✅ Restaurer user (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"User restored\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.deleted_at).to.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/{{guest_id}}/restore",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{guest_id}}", "restore"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.6 ❌ Guest ne peut PAS lister users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "console.log('✅ RBAC: Guest correctement bloqué');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guest_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/admin/all",
+              "host": ["{{base_url}}"],
+              "path": ["users", "admin", "all"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1.7 ❌ User ne peut PAS modifier son rôle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Error message about role\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(JSON.stringify(jsonData)).to.include('role');",
+                  "});",
+                  "",
+                  "console.log('✅ Sécurité: Modification du rôle bloquée');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/{{guest_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["users", "{{guest_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2️⃣ HOTELS - CRUD Fonctionnel",
+      "description": "Tests de création, lecture, mise à jour et suppression d'hôtels",
+      "item": [
+        {
+          "name": "2.1 ✅ Créer un hôtel (Hotel Owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Hotel created with all fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData.name).to.eql('Hôtel Plaza Paris');",
+                  "    pm.expect(jsonData.star_rating).to.eql(4);",
+                  "    pm.expect(jsonData.slug).to.exist;",
+                  "    pm.expect(jsonData.is_active).to.be.true;",
+                  "    pm.collectionVariables.set(\"hotel_id\", jsonData.id);",
+                  "    pm.collectionVariables.set(\"hotel_slug\", jsonData.slug);",
+                  "});",
+                  "",
+                  "pm.test(\"Slug is SEO-friendly\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.slug).to.match(/^[a-z0-9-]+$/);",
+                  "});",
+                  "",
+                  "console.log('✅ Hôtel créé - ID: ' + pm.response.json().id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hôtel Plaza Paris\",\n  \"description\": \"Magnifique hôtel 4 étoiles situé au cœur de Paris, proche de la Tour Eiffel et des Champs-Élysées. Chambres luxueuses avec vue panoramique sur la ville lumière. Profitez de notre spa de 500m², notre restaurant gastronomique étoilé et notre bar lounge avec terrasse.\",\n  \"short_description\": \"Hôtel 4 étoiles au cœur de Paris avec spa et restaurant étoilé\",\n  \"address\": \"10 Avenue des Champs-Élysées\",\n  \"city\": \"Paris\",\n  \"zip_code\": \"75008\",\n  \"country\": \"France\",\n  \"latitude\": 48.8566,\n  \"longitude\": 2.3522,\n  \"phone\": \"+33 1 23 45 67 89\",\n  \"email\": \"contact@hotelplazaparis.fr\",\n  \"website\": \"https://hotelplazaparis.fr\",\n  \"star_rating\": 4,\n  \"check_in_time\": \"15:00:00\",\n  \"check_out_time\": \"11:00:00\",\n  \"reception_24h\": true,\n  \"amenities\": [\"wifi\", \"parking\", \"restaurant\", \"bar\", \"spa\", \"piscine\", \"salle_sport\"],\n  \"is_independent\": true,\n  \"labels\": [\"Qualité Tourisme\", \"Eco-label\"],\n  \"certifications\": [\"ISO 14001\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 ✅ Lister tous les hôtels (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns array of hotels\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Only active hotels returned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(hotel => {",
+                  "        pm.expect(hotel.is_active).to.be.true;",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log('✅ ' + pm.response.json().length + ' hôtels actifs trouvés');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.3 ✅ Récupérer hôtel par ID (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Hotel details returned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('description');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels/{{hotel_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "{{hotel_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.4 ✅ Récupérer par slug (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Hotel found by slug\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.slug).to.include('hotel-plaza-paris');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels/slug/hotel-plaza-paris",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "slug", "hotel-plaza-paris"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.5 ✅ Recherche par ville (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Hotels in Paris found\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    jsonData.forEach(hotel => {",
+                  "        pm.expect(hotel.city.toLowerCase()).to.include('paris');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels/search/city/Paris",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "search", "city", "Paris"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.6 ✅ Mes hôtels (Hotel Owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns only my hotels\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    pm.expect(jsonData.length).to.be.greaterThan(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels/my-hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "my-hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.7 ✅ Mettre à jour mon hôtel (Hotel Owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Hotel updated\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.phone).to.eql('+33 1 99 88 77 66');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+33 1 99 88 77 66\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels/{{hotel_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "{{hotel_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2.8 ✅ Soft delete mon hôtel (Hotel Owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Soft delete successful\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels/{{hotel_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "{{hotel_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3️⃣ HOTELS - Tests Sécurité RBAC",
+      "description": "Tests de sécurité - ces requêtes DOIVENT échouer",
+      "item": [
+        {
+          "name": "3.1 ❌ Guest ne peut PAS créer d'hôtel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "console.log('✅ RBAC: Guest correctement bloqué');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guest_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hacker Hotel\",\n  \"description\": \"This should be blocked by RBAC security guard system implementation\",\n  \"address\": \"123 Hack Street\",\n  \"city\": \"Hackville\",\n  \"zip_code\": \"12345\",\n  \"country\": \"France\",\n  \"star_rating\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 ❌ Sans token ne peut PAS créer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401 Unauthorized\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "console.log('✅ Auth: Requête non authentifiée bloquée');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Unauthorized Hotel\",\n  \"description\": \"Should require authentication to create hotels\",\n  \"address\": \"Nowhere\",\n  \"city\": \"Null\",\n  \"zip_code\": \"00000\",\n  \"country\": \"None\",\n  \"star_rating\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 ❌ Guest ne peut PAS accéder à /my-hotels",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "console.log('✅ RBAC: Guest bloqué pour /my-hotels');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guest_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels/my-hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "my-hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 ❌ Guest ne peut PAS accéder à /admin/all",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "console.log('✅ RBAC: Guest bloqué pour /admin/all');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{guest_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels/admin/all",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "admin", "all"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4️⃣ HOTELS - Tests Validation",
+      "description": "Tests de validation des données - ces requêtes DOIVENT échouer",
+      "item": [
+        {
+          "name": "4.1 ❌ Nom trop court (<3 chars)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation error for name\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(JSON.stringify(jsonData)).to.include('name');",
+                  "});",
+                  "",
+                  "console.log('✅ Validation: Nom trop court rejeté');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"HO\",\n  \"description\": \"Description longue de plus de 50 caractères pour passer la validation minimale requise par le système.\",\n  \"address\": \"123 Test Street\",\n  \"city\": \"Paris\",\n  \"zip_code\": \"75001\",\n  \"country\": \"France\",\n  \"star_rating\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 ❌ Description trop courte (<50 chars)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation error for description\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(JSON.stringify(jsonData)).to.include('description');",
+                  "});",
+                  "",
+                  "console.log('✅ Validation: Description trop courte rejetée');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hôtel Test\",\n  \"description\": \"Court\",\n  \"address\": \"123 Test Street\",\n  \"city\": \"Paris\",\n  \"zip_code\": \"75001\",\n  \"country\": \"France\",\n  \"star_rating\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 ❌ Étoiles invalides (>5)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation error for star_rating\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(JSON.stringify(jsonData)).to.include('star_rating');",
+                  "});",
+                  "",
+                  "console.log('✅ Validation: Étoiles > 5 rejeté');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hôtel 6 Étoiles\",\n  \"description\": \"Hôtel de luxe exceptionnel avec 6 étoiles imaginaires qui n'existent pas dans la classification officielle.\",\n  \"address\": \"123 Test Street\",\n  \"city\": \"Paris\",\n  \"zip_code\": \"75001\",\n  \"country\": \"France\",\n  \"star_rating\": 6\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.4 ❌ Code postal invalide (pas 5 chiffres)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation error for zip_code\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(JSON.stringify(jsonData)).to.include('zip_code');",
+                  "});",
+                  "",
+                  "console.log('✅ Validation: Code postal invalide rejeté');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hôtel Test\",\n  \"description\": \"Description longue de plus de 50 caractères pour passer la validation minimale requise par le système.\",\n  \"address\": \"123 Test Street\",\n  \"city\": \"Paris\",\n  \"zip_code\": \"ABC12\",\n  \"country\": \"France\",\n  \"star_rating\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4.5 ❌ Email invalide",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation error for email\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(JSON.stringify(jsonData)).to.include('email');",
+                  "});",
+                  "",
+                  "console.log('✅ Validation: Email invalide rejeté');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{hotel_owner_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hôtel Test\",\n  \"description\": \"Description longue de plus de 50 caractères pour passer la validation minimale requise par le système.\",\n  \"address\": \"123 Test Street\",\n  \"city\": \"Paris\",\n  \"zip_code\": \"75001\",\n  \"country\": \"France\",\n  \"email\": \"invalid-email\",\n  \"star_rating\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5️⃣ HOTELS - Admin",
+      "description": "Tests spécifiques aux administrateurs",
+      "item": [
+        {
+          "name": "5.1 ✅ Admin - Lister TOUS les hôtels",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Returns all hotels (active + inactive)\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "console.log('✅ Admin: ' + pm.response.json().length + ' hôtels (actifs + inactifs)');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/hotels/admin/all",
+              "host": ["{{base_url}}"],
+              "path": ["hotels", "admin", "all"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5.2 ✅ Admin - Créer hôtel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Hotel created by admin\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.collectionVariables.set(\"admin_hotel_id\", jsonData.id);",
+                  "});",
+                  "",
+                  "console.log('✅ Hôtel créé par Admin');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hôtel Admin Test\",\n  \"description\": \"Hôtel créé par l'administrateur pour tester les permissions administrateur\",\n  \"address\": \"456 Admin Street\",\n  \"city\": \"Lyon\",\n  \"zip_code\": \"69001\",\n  \"country\": \"France\",\n  \"star_rating\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/hotels",
+              "host": ["{{base_url}}"],
+              "path": ["hotels"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hotel_owner_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hotel_owner_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "guest_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "guest_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hotel_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "hotel_slug",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_hotel_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "new_hotel_owner_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "new_hotel_owner_email",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

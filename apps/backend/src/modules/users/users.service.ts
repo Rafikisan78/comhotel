@@ -1,18 +1,28 @@
-import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
-import { CreateUserDto, UserRole } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
-import { HashUtil } from '../../common/utils/hash.util';
-import { SupabaseService } from '../../common/database/supabase.service';
+import {
+  Injectable,
+  ConflictException,
+  BadRequestException,
+} from "@nestjs/common";
+import { CreateUserDto, UserRole } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { User } from "./entities/user.entity";
+import { HashUtil } from "../../common/utils/hash.util";
+import { SupabaseService } from "../../common/database/supabase.service";
 
 @Injectable()
 export class UsersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
+  // Méthode utilitaire pour générer un token de confirmation unique
+  private generateConfirmationToken(): string {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }
+
   // Méthode utilitaire pour exclure le mot de passe des réponses
-  private excludePassword(user: User): Omit<User, 'password'> {
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword as Omit<User, 'password'>;
+  private excludePassword(user: User): Omit<User, "password"> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _password, ...userWithoutPassword } = user;
+    return userWithoutPassword as Omit<User, "password">;
   }
 
   // Méthode utilitaire pour mapper les données Supabase vers User entity
@@ -24,18 +34,66 @@ export class UsersService {
       firstName: row.first_name,
       lastName: row.last_name,
       phone: row.phone,
+      phoneCountryCode: row.phone_country_code,
       role: row.role,
-      createdAt: new Date(row.created_at),
-      updatedAt: new Date(row.updated_at),
+      avatarUrl: row.avatar_url,
+
+      // Préférences
+      languagePreference: row.language_preference || "fr",
+      currencyPreference: row.currency_preference || "EUR",
+
+      // Entreprise
+      companyName: row.company_name,
+      companyVat: row.company_vat,
+
+      // Programme de fidélité
+      loyaltyPoints: row.loyalty_points ?? 0,
+      loyaltyTier: row.loyalty_tier || "bronze",
+
+      // Email confirmation
+      emailConfirmed: row.email_confirmed ?? false,
+      emailConfirmationToken: row.email_confirmation_token,
+      emailConfirmationSentAt: row.email_confirmation_sent_at
+        ? new Date(row.email_confirmation_sent_at)
+        : undefined,
+      emailVerifiedAt: row.email_verified_at
+        ? new Date(row.email_verified_at)
+        : undefined,
+      phoneVerifiedAt: row.phone_verified_at
+        ? new Date(row.phone_verified_at)
+        : undefined,
+
+      // Password reset
+      passwordResetToken: row.password_reset_token,
+      passwordResetExpiresAt: row.password_reset_expires_at
+        ? new Date(row.password_reset_expires_at)
+        : undefined,
+
+      // Account status
+      isActive: row.is_active ?? true,
       deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
       deletedBy: row.deleted_by || undefined,
+
+      // Login security
+      lastLoginAt: row.last_login_at ? new Date(row.last_login_at) : undefined,
+      failedLoginAttempts: row.failed_login_attempts ?? 0,
+      accountLockedUntil: row.account_locked_until
+        ? new Date(row.account_locked_until)
+        : undefined,
+
+      // Préférences JSON
+      preferences: row.preferences || {},
+
+      // Timestamps
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
     };
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Valider l'email
-    if (!createUserDto.email || createUserDto.email.trim() === '') {
-      throw new BadRequestException('L\'email est requis');
+    if (!createUserDto.email || createUserDto.email.trim() === "") {
+      throw new BadRequestException("L'email est requis");
     }
 
     // SÉCURITÉ: Normaliser l'email (lowercase + trim) pour éviter les doublons
@@ -44,28 +102,36 @@ export class UsersService {
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await this.findByEmail(normalizedEmail);
     if (existingUser) {
-      throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      throw new ConflictException("Un utilisateur avec cet email existe déjà");
     }
 
     // Valider le mot de passe (OWASP 2024)
     if (!createUserDto.password || createUserDto.password.length < 12) {
-      throw new BadRequestException('Le mot de passe doit contenir au moins 12 caractères');
+      throw new BadRequestException(
+        "Le mot de passe doit contenir au moins 12 caractères",
+      );
     }
 
     // Vérifier la complexité du mot de passe
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/;
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/;
     if (!passwordRegex.test(createUserDto.password)) {
-      throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)');
+      throw new BadRequestException(
+        "Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)",
+      );
     }
 
     // Hasher le mot de passe
     const hashedPassword = await HashUtil.hash(createUserDto.password);
 
+    // Générer un token de confirmation d'email unique
+    const emailConfirmationToken = this.generateConfirmationToken();
+
     // Créer l'utilisateur dans Supabase
     // SÉCURITÉ: Le rôle est forcé à 'guest' pour empêcher l'injection de rôle
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
-      .from('users')
+      .from("users")
       .insert({
         email: normalizedEmail,
         password_hash: hashedPassword,
@@ -73,31 +139,47 @@ export class UsersService {
         last_name: createUserDto.lastName,
         phone: createUserDto.phone,
         role: UserRole.GUEST,
+        email_confirmed: false,
+        email_confirmation_token: emailConfirmationToken,
+        email_confirmation_sent_at: new Date().toISOString(),
+        is_active: true,
+        failed_login_attempts: 0,
       })
       .select()
       .single();
 
     if (error) {
       // SÉCURITÉ: Gérer proprement l'erreur de duplication (race condition)
-      if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
-        throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      if (
+        error.code === "23505" ||
+        error.message.includes("duplicate") ||
+        error.message.includes("unique")
+      ) {
+        throw new ConflictException(
+          "Un utilisateur avec cet email existe déjà",
+        );
       }
-      throw new BadRequestException(`Erreur lors de la création de l'utilisateur: ${error.message}`);
+      throw new BadRequestException(
+        `Erreur lors de la création de l'utilisateur: ${error.message}`,
+      );
     }
 
     // Retourner l'utilisateur sans le mot de passe
     const user = this.mapRowToUser(data);
 
-    const { password, ...userWithoutPassword } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _pw, ...userWithoutPassword } = user;
     return userWithoutPassword as User;
   }
 
   async findAll(): Promise<User[]> {
     const supabase = this.supabaseService.getClient();
-    const { data, error } = await supabase.from('users').select('*');
+    const { data, error } = await supabase.from("users").select("*");
 
     if (error) {
-      throw new BadRequestException(`Erreur lors de la récupération des utilisateurs: ${error.message}`);
+      throw new BadRequestException(
+        `Erreur lors de la récupération des utilisateurs: ${error.message}`,
+      );
     }
 
     return data.map((row) => {
@@ -109,9 +191,9 @@ export class UsersService {
   async findOne(id: string): Promise<User | null> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
+      .from("users")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error || !data) return null;
@@ -126,31 +208,21 @@ export class UsersService {
 
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', normalizedEmail)
+      .from("users")
+      .select("*")
+      .eq("email", normalizedEmail)
       .single();
 
     if (error || !data) return null;
 
-    return {
-      id: data.id,
-      email: data.email,
-      password: data.password_hash,
-      firstName: data.first_name,
-      lastName: data.last_name,
-      phone: data.phone,
-      role: data.role,
-      createdAt: new Date(data.created_at),
-      updatedAt: new Date(data.updated_at),
-    };
+    return this.mapRowToUser(data);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
     // Vérifier que l'utilisateur existe
     const existingUser = await this.findOne(id);
     if (!existingUser) {
-      throw new BadRequestException('Utilisateur introuvable');
+      throw new BadRequestException("Utilisateur introuvable");
     }
 
     const supabase = this.supabaseService.getClient();
@@ -163,7 +235,9 @@ export class UsersService {
       // Vérifier que le nouvel email n'est pas déjà utilisé par un autre utilisateur
       const userWithEmail = await this.findByEmail(normalizedEmail);
       if (userWithEmail && userWithEmail.id !== id) {
-        throw new ConflictException('Un utilisateur avec cet email existe déjà');
+        throw new ConflictException(
+          "Un utilisateur avec cet email existe déjà",
+        );
       }
 
       updateData.email = normalizedEmail;
@@ -172,45 +246,61 @@ export class UsersService {
     // Gérer la mise à jour du mot de passe avec hashage (OWASP 2024)
     if (updateUserDto.password) {
       if (updateUserDto.password.length < 12) {
-        throw new BadRequestException('Le mot de passe doit contenir au moins 12 caractères');
+        throw new BadRequestException(
+          "Le mot de passe doit contenir au moins 12 caractères",
+        );
       }
 
       // Vérifier la complexité du mot de passe
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/;
+      const passwordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&._\-+=#])[A-Za-z\d@$!%*?&._\-+=#]+$/;
       if (!passwordRegex.test(updateUserDto.password)) {
-        throw new BadRequestException('Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)');
+        throw new BadRequestException(
+          "Le mot de passe doit contenir au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&._-+=#)",
+        );
       }
 
       updateData.password_hash = await HashUtil.hash(updateUserDto.password);
     }
 
     // Gérer les autres champs
-    if (updateUserDto.firstName !== undefined) updateData.first_name = updateUserDto.firstName;
-    if (updateUserDto.lastName !== undefined) updateData.last_name = updateUserDto.lastName;
-    if (updateUserDto.phone !== undefined) updateData.phone = updateUserDto.phone;
+    if (updateUserDto.firstName !== undefined)
+      updateData.first_name = updateUserDto.firstName;
+    if (updateUserDto.lastName !== undefined)
+      updateData.last_name = updateUserDto.lastName;
+    if (updateUserDto.phone !== undefined)
+      updateData.phone = updateUserDto.phone;
 
     // Si aucun champ à mettre à jour
     if (Object.keys(updateData).length === 0) {
-      throw new BadRequestException('Aucune donnée à mettre à jour');
+      throw new BadRequestException("Aucune donnée à mettre à jour");
     }
 
     const { data, error } = await supabase
-      .from('users')
+      .from("users")
       .update(updateData)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) {
       // Gérer l'erreur de duplication d'email
-      if (error.code === '23505' || error.message.includes('duplicate') || error.message.includes('unique')) {
-        throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      if (
+        error.code === "23505" ||
+        error.message.includes("duplicate") ||
+        error.message.includes("unique")
+      ) {
+        throw new ConflictException(
+          "Un utilisateur avec cet email existe déjà",
+        );
       }
-      throw new BadRequestException(`Erreur lors de la mise à jour: ${error.message}`);
+      throw new BadRequestException(
+        `Erreur lors de la mise à jour: ${error.message}`,
+      );
     }
 
     if (!data) {
-      throw new BadRequestException('Échec de la mise à jour');
+      throw new BadRequestException("Échec de la mise à jour");
     }
 
     const user = this.mapRowToUser(data);
@@ -220,7 +310,7 @@ export class UsersService {
 
   async remove(id: string): Promise<boolean> {
     const supabase = this.supabaseService.getClient();
-    const { error } = await supabase.from('users').delete().eq('id', id);
+    const { error } = await supabase.from("users").delete().eq("id", id);
 
     return !error;
   }
@@ -234,35 +324,37 @@ export class UsersService {
     // Vérifier que l'utilisateur existe et n'est pas déjà supprimé
     const existingUser = await this.findOne(id);
     if (!existingUser) {
-      throw new BadRequestException('Utilisateur introuvable');
+      throw new BadRequestException("Utilisateur introuvable");
     }
 
     const supabase = this.supabaseService.getClient();
 
     // Vérifier si déjà supprimé
     const { data: checkData } = await supabase
-      .from('users')
-      .select('deleted_at')
-      .eq('id', id)
+      .from("users")
+      .select("deleted_at")
+      .eq("id", id)
       .single();
 
     if (checkData?.deleted_at) {
-      throw new BadRequestException('Cet utilisateur est déjà supprimé');
+      throw new BadRequestException("Cet utilisateur est déjà supprimé");
     }
 
     // Soft delete: mettre à jour deleted_at et deleted_by
     const { data, error } = await supabase
-      .from('users')
+      .from("users")
       .update({
         deleted_at: new Date().toISOString(),
         deleted_by: deletedBy,
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error || !data) {
-      throw new BadRequestException(`Erreur lors de la suppression: ${error?.message}`);
+      throw new BadRequestException(
+        `Erreur lors de la suppression: ${error?.message}`,
+      );
     }
 
     const user = this.mapRowToUser(data);
@@ -279,32 +371,34 @@ export class UsersService {
 
     // Vérifier que l'utilisateur existe et est bien supprimé
     const { data: checkData } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
+      .from("users")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (!checkData) {
-      throw new BadRequestException('Utilisateur introuvable');
+      throw new BadRequestException("Utilisateur introuvable");
     }
 
     if (!checkData.deleted_at) {
-      throw new BadRequestException('Cet utilisateur n\'est pas supprimé');
+      throw new BadRequestException("Cet utilisateur n'est pas supprimé");
     }
 
     // Restaurer: remettre deleted_at et deleted_by à NULL
     const { data, error } = await supabase
-      .from('users')
+      .from("users")
       .update({
         deleted_at: null,
         deleted_by: null,
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error || !data) {
-      throw new BadRequestException(`Erreur lors de la restauration: ${error?.message}`);
+      throw new BadRequestException(
+        `Erreur lors de la restauration: ${error?.message}`,
+      );
     }
 
     const user = this.mapRowToUser(data);
@@ -317,7 +411,10 @@ export class UsersService {
    * @param ids - Array of user IDs to delete
    * @param deletedBy - ID of admin performing the deletion
    */
-  async bulkSoftDelete(ids: string[], deletedBy: string): Promise<{ deleted: number; errors: string[] }> {
+  async bulkSoftDelete(
+    ids: string[],
+    deletedBy: string,
+  ): Promise<{ deleted: number; errors: string[] }> {
     const supabase = this.supabaseService.getClient();
     const errors: string[] = [];
     let deleted = 0;
@@ -332,9 +429,9 @@ export class UsersService {
 
         // Vérifier que l'utilisateur existe
         const { data: userData } = await supabase
-          .from('users')
-          .select('role, deleted_at')
-          .eq('id', id)
+          .from("users")
+          .select("role, deleted_at")
+          .eq("id", id)
           .single();
 
         if (!userData) {
@@ -347,19 +444,19 @@ export class UsersService {
           continue;
         }
 
-        if (userData.role === 'admin') {
+        if (userData.role === "admin") {
           errors.push(`${id}: Impossible de supprimer un autre administrateur`);
           continue;
         }
 
         // Soft delete
         const { error } = await supabase
-          .from('users')
+          .from("users")
           .update({
             deleted_at: new Date().toISOString(),
             deleted_by: deletedBy,
           })
-          .eq('id', id);
+          .eq("id", id);
 
         if (error) {
           errors.push(`${id}: ${error.message}`);
@@ -380,12 +477,14 @@ export class UsersService {
   async findAllIncludingDeleted(): Promise<User[]> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("users")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      throw new BadRequestException(`Erreur lors de la récupération: ${error.message}`);
+      throw new BadRequestException(
+        `Erreur lors de la récupération: ${error.message}`,
+      );
     }
 
     return data.map((row) => {

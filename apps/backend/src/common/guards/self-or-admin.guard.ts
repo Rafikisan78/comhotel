@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from "@nestjs/common";
 
 @Injectable()
 export class SelfOrAdminGuard implements CanActivate {
@@ -8,11 +13,11 @@ export class SelfOrAdminGuard implements CanActivate {
     const targetUserId = request.params.id;
 
     if (!user) {
-      throw new ForbiddenException('Authentification requise');
+      throw new ForbiddenException("Authentification requise");
     }
 
     // Admin peut tout faire
-    if (user.role === 'admin') {
+    if (user.role === "admin") {
       return true;
     }
 
@@ -21,6 +26,8 @@ export class SelfOrAdminGuard implements CanActivate {
       return true;
     }
 
-    throw new ForbiddenException('Vous ne pouvez modifier que votre propre profil');
+    throw new ForbiddenException(
+      "Vous ne pouvez modifier que votre propre profil",
+    );
   }
 }

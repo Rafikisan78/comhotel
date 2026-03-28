@@ -9,25 +9,36 @@ export default function HomePage() {
           <p className="text-xl text-gray-600 mb-8">
             Votre plateforme de réservation d'hôtels intelligente
           </p>
-          <div className="flex gap-4 justify-center">
-            <a
-              href="/search"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
-            >
-              Rechercher un hôtel
-            </a>
-            <a
-              href="/login"
-              className="bg-white text-blue-600 border border-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition"
-            >
-              Se connecter
-            </a>
-            <a
-              href="/register"
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition"
-            >
-              S'inscrire
-            </a>
+          <a
+            href="/hotels"
+            className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition text-lg font-semibold"
+          >
+            Découvrir nos hôtels
+          </a>
+        </div>
+
+        {/* Features Section */}
+        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center p-6 bg-white rounded-lg shadow-md">
+            <div className="text-5xl mb-4">🌍</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">45 Hôtels</h3>
+            <p className="text-gray-600">
+              Dans 6 villes à travers le monde
+            </p>
+          </div>
+          <div className="text-center p-6 bg-white rounded-lg shadow-md">
+            <div className="text-5xl mb-4">⭐</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Qualité Garantie</h3>
+            <p className="text-gray-600">
+              Des hôtels de 2 à 5 étoiles sélectionnés
+            </p>
+          </div>
+          <div className="text-center p-6 bg-white rounded-lg shadow-md">
+            <div className="text-5xl mb-4">🔒</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Réservation Sécurisée</h3>
+            <p className="text-gray-600">
+              Paiement et données protégés
+            </p>
           </div>
         </div>
       </div>
