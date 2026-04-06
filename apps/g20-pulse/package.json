@@ -1,0 +1,11 @@
+{
+  "name": "g20-pulse",
+  "version": "1.0.0",
+  "description": "G20 Pulse - Actualités quotidiennes des pays du G20",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve public -l 3001",
+    "build": "echo 'Static site, no build needed'",
+    "start": "npx serve public"
+  }
+}
