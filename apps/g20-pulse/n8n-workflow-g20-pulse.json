@@ -1,5 +1,5 @@
 {
-  "name": "G20 Pulse — Actualités quotidiennes",
+  "name": "G20 Pulse — Automatisation",
   "nodes": [
     {
       "parameters": {
@@ -12,63 +12,21 @@
           ]
         }
       },
-      "id": "cron-trigger",
-      "name": "CRON 06h00 UTC",
+      "id": "51e4c66d-2c3d-4aeb-847c-2e203a77ec33",
+      "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [0, 300]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "countries_json",
-              "value": "[{\"code\":\"AR\",\"name\":\"Argentine\",\"query\":\"Argentina\"},{\"code\":\"AU\",\"name\":\"Australie\",\"query\":\"Australia\"},{\"code\":\"BR\",\"name\":\"Brésil\",\"query\":\"Brazil\"},{\"code\":\"CA\",\"name\":\"Canada\",\"query\":\"Canada\"},{\"code\":\"CN\",\"name\":\"Chine\",\"query\":\"China\"},{\"code\":\"FR\",\"name\":\"France\",\"query\":\"France\"},{\"code\":\"DE\",\"name\":\"Allemagne\",\"query\":\"Germany\"},{\"code\":\"IN\",\"name\":\"Inde\",\"query\":\"India\"},{\"code\":\"ID\",\"name\":\"Indonésie\",\"query\":\"Indonesia\"},{\"code\":\"IT\",\"name\":\"Italie\",\"query\":\"Italy\"},{\"code\":\"JP\",\"name\":\"Japon\",\"query\":\"Japan\"},{\"code\":\"MX\",\"name\":\"Mexique\",\"query\":\"Mexico\"},{\"code\":\"RU\",\"name\":\"Russie\",\"query\":\"Russia\"},{\"code\":\"SA\",\"name\":\"Arabie Saoudite\",\"query\":\"Saudi Arabia\"},{\"code\":\"ZA\",\"name\":\"Afrique du Sud\",\"query\":\"South Africa\"},{\"code\":\"KR\",\"name\":\"Corée du Sud\",\"query\":\"South Korea\"},{\"code\":\"TR\",\"name\":\"Turquie\",\"query\":\"Turkey\"},{\"code\":\"GB\",\"name\":\"Royaume-Uni\",\"query\":\"United Kingdom\"},{\"code\":\"US\",\"name\":\"États-Unis\",\"query\":\"United States\"},{\"code\":\"EU\",\"name\":\"Union Européenne\",\"query\":\"European Union\"}]"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "set-countries-json",
-      "name": "Set Countries JSON",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [220, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "const countriesJson = $input.first().json.countries_json;\nconst countries = JSON.parse(countriesJson);\nreturn countries.map(c => ({ json: c }));"
-      },
-      "id": "parse-countries",
-      "name": "Parse Countries List",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [440, 300]
-    },
-    {
-      "parameters": {
-        "batchSize": 1,
-        "options": {
-          "reset": false
-        }
-      },
-      "id": "split-countries",
-      "name": "Loop Countries",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [660, 300]
-    },
-    {
-      "parameters": {
-        "amount": 5,
-        "unit": "seconds"
-      },
-      "id": "wait-rate-limit",
-      "name": "Wait 5s (Rate Limit)",
-      "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [880, 300]
+      "position": [-600, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {code: 'AR', name: 'Argentine', query: 'Argentina'},\n  {code: 'AU', name: 'Australie', query: 'Australia'},\n  {code: 'BR', name: 'Brésil', query: 'Brazil'},\n  {code: 'CA', name: 'Canada', query: 'Canada'},\n  {code: 'CN', name: 'Chine', query: 'China'},\n  {code: 'FR', name: 'France', query: 'France'},\n  {code: 'DE', name: 'Allemagne', query: 'Germany'},\n  {code: 'IN', name: 'Inde', query: 'India'},\n  {code: 'ID', name: 'Indonésie', query: 'Indonesia'},\n  {code: 'IT', name: 'Italie', query: 'Italy'},\n  {code: 'JP', name: 'Japon', query: 'Japan'},\n  {code: 'MX', name: 'Mexique', query: 'Mexico'},\n  {code: 'RU', name: 'Russie', query: 'Russia'},\n  {code: 'SA', name: 'Arabie Saoudite', query: 'Saudi Arabia'},\n  {code: 'ZA', name: 'Afrique du Sud', query: 'South Africa'},\n  {code: 'KR', name: 'Corée du Sud', query: 'South Korea'},\n  {code: 'TR', name: 'Turquie', query: 'Turkey'},\n  {code: 'GB', name: 'Royaume-Uni', query: 'United Kingdom'},\n  {code: 'US', name: 'États-Unis', query: 'United States'},\n  {code: 'EU', name: 'Union Européenne', query: 'European Union'}\n].map(c => ({json: c}));"
+      },
+      "id": "c4e1c1ef-ca37-441c-b21f-0bdabd70d056",
+      "name": "Set — Liste des pays G20",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [-380, 300]
     },
     {
       "parameters": {
@@ -79,58 +37,44 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "anthropic-version",
-              "value": "2023-06-01"
-            },
-            {
-              "name": "content-type",
-              "value": "application/json"
-            }
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, tools: [{ type: 'web_search_20250305', name: 'web_search' }], messages: [{ role: 'user', content: `Tu es un agrégateur d'actualités internationales expert et impartial, spécialisé dans l'analyse géopolitique des pays du G20.\\n\\nPour le pays \"${$json.name}\" (${$json.query}), identifie et résume les 5 actualités les plus importantes des dernières 24 heures (date du jour : ${new Date().toISOString().split('T')[0]}).\\n\\nCritères de sélection (par priorité) :\\n1. Crises majeures (conflits, catastrophes, urgences sanitaires)\\n2. Décisions politiques ou économiques d'impact international\\n3. Évolutions technologiques ou industrielles structurantes\\n4. Événements diplomatiques ou géopolitiques significatifs\\n5. Faits de société marquants ou mouvements sociaux\\n\\nRetourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après, sans backticks markdown.\\nChaque objet doit contenir :\\n- \"title\" : titre concis en français (max 100 caractères)\\n- \"summary\" : résumé factuel en français (150-200 mots), structuré : contexte → faits → implications\\n- \"category\" : une parmi [Politique, Économie, Technologie, Société, Environnement, Sécurité, Diplomatie, Culture, Énergie, Santé]\\n- \"youtube_query\" : requête YouTube EN ANGLAIS (max 8 mots, inclure pays + année)\\n- \"youtube_video_id\" : laisser vide \"\"\\n- \"source\" : source principale probable (Reuters, AFP, AP, BBC, Al Jazeera, etc.)\\n- \"date\" : date au format \"YYYY-MM-DD\"\\n- \"importance\" : score de 1 à 5 (5 = impact mondial critique)\\n- \"tags\" : tableau de 3 tags pertinents en français` }] }) }}"
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4000,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Tu es un agrégateur d'actualités expert. Pour le pays \\\"{{ $json.name }}\\\" ({{ $json.query }}), identifie les 5 actualités les plus importantes des dernières 24h ({{ $now.format('yyyy-MM-dd') }}). Critères : 1) Crises majeures 2) Décisions politiques/économiques 3) Tech/industrie 4) Diplomatie 5) Société. Retourne UNIQUEMENT un tableau JSON valide : [{\\\"title\\\":\\\"...\\\",\\\"summary\\\":\\\"résumé 150-200 mots\\\",\\\"category\\\":\\\"Politique|Économie|Technologie|Société|Environnement|Sécurité|Diplomatie|Culture\\\",\\\"youtube_query\\\":\\\"requête YouTube en anglais max 8 mots\\\",\\\"youtube_video_id\\\":\\\"\\\",\\\"source\\\":\\\"Reuters|AFP|etc\\\",\\\"date\\\":\\\"YYYY-MM-DD\\\",\\\"importance\\\":1,\\\"tags\\\":[\\\"tag1\\\",\\\"tag2\\\",\\\"tag3\\\"]}]\"\n    }\n  ]\n}",
+        "options": {
+          "batching": {
+            "batch": { "batchSize": 1, "batchInterval": 15000 }
+          }
+        }
       },
-      "id": "claude-api-news",
-      "name": "Claude API — Actualités",
+      "id": "c929bd7d-43fe-4fda-889d-fee942b17625",
+      "name": "HTTP Request — Claude API",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1100, 300],
+      "typeVersion": 4.1,
+      "position": [-140, 300],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "",
-          "name": "Anthropic API Key"
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Header Auth account"
         }
-      }
+      },
+      "_comment": "Configure le credential 'Header Auth account' avec Name=x-api-key et Value=votre clé Anthropic"
     },
     {
       "parameters": {
-        "jsCode": "// Extraire le texte de la réponse Claude\nconst content = $input.first().json.content;\nlet textContent = '';\n\nfor (const block of content) {\n  if (block.type === 'text') {\n    textContent += block.text;\n  }\n}\n\n// Extraire le JSON du texte\nconst jsonMatch = textContent.match(/\\[[\\s\\S]*\\]/);\nif (!jsonMatch) {\n  // Retourner un tableau vide si pas de JSON\n  return [{ json: { articles: [], country_code: $('Loop Countries').first().json.code, country_name: $('Loop Countries').first().json.name, error: 'No JSON found in Claude response' } }];\n}\n\ntry {\n  const articles = JSON.parse(jsonMatch[0]);\n  const countryCode = $('Loop Countries').first().json.code;\n  const countryName = $('Loop Countries').first().json.name;\n\n  return articles.map((article, index) => ({\n    json: {\n      country_code: countryCode,\n      country_name: countryName,\n      article_index: index,\n      ...article\n    }\n  }));\n} catch (e) {\n  return [{ json: { articles: [], country_code: $('Loop Countries').first().json.code, country_name: $('Loop Countries').first().json.name, error: 'JSON parse error: ' + e.message } }];\n}"
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const content = item.json.content;\n  let textContent = '';\n\n  for (const block of content) {\n    if (block.type === 'text') {\n      textContent += block.text;\n    }\n  }\n\n  const startIdx = textContent.indexOf('[');\n  const endIdx = textContent.lastIndexOf(']');\n  if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {\n    continue;\n  }\n\n  let jsonStr = textContent.substring(startIdx, endIdx + 1);\n  jsonStr = jsonStr.replace(/[\\x00-\\x1F\\x7F]/g, (ch) => {\n    if (ch === '\\n' || ch === '\\r' || ch === '\\t') return ch;\n    return ' ';\n  });\n\n  let articles;\n  try {\n    articles = JSON.parse(jsonStr);\n  } catch (e) {\n    try {\n      let fixed = jsonStr;\n      if (!fixed.trim().endsWith(']')) fixed += '\"}]';\n      articles = JSON.parse(fixed);\n    } catch (e2) {\n      continue;\n    }\n  }\n\n  const country = $('Set — Liste des pays G20').all()[i];\n  const countryCode = country ? country.json.code : 'UNKNOWN';\n  const countryName = country ? country.json.name : 'Unknown';\n\n  for (let j = 0; j < articles.length; j++) {\n    results.push({\n      json: {\n        country_code: countryCode,\n        country_name: countryName,\n        article_index: j,\n        ...articles[j]\n      }\n    });\n  }\n}\n\nreturn results;"
       },
-      "id": "parse-claude-response",
-      "name": "Parse Claude Response",
+      "id": "5a70d10c-c5b1-4566-bda3-8ebc63d20049",
+      "name": "Code — Parser la réponse Claude",
       "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1320, 300]
+      "typeVersion": 1,
+      "position": [80, 300]
     },
     {
       "parameters": {
-        "batchSize": 1,
-        "options": {
-          "reset": false
-        }
-      },
-      "id": "split-articles",
-      "name": "Loop Articles",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [1540, 300]
-    },
-    {
-      "parameters": {
-        "method": "GET",
         "url": "https://www.googleapis.com/youtube/v3/search",
         "sendQuery": true,
         "queryParameters": {
@@ -140,138 +84,88 @@
             { "name": "type", "value": "video" },
             { "name": "order", "value": "date" },
             { "name": "maxResults", "value": "1" },
-            { "name": "publishedAfter", "value": "={{ new Date(Date.now() - 3*24*60*60*1000).toISOString() }}" },
+            { "name": "publishedAfter", "value": "={{ $now.plus({days: -3}).toISO() }}" },
             { "name": "relevanceLanguage", "value": "en" },
-            { "name": "key", "value": "={{ $credentials.youtubeApi?.apiKey || '' }}" }
+            { "name": "key", "value": "=YOUR_YOUTUBE_API_KEY" }
           ]
+        },
+        "options": {
+          "batching": {
+            "batch": { "batchSize": 5, "batchInterval": 1000 }
+          }
         }
       },
-      "id": "youtube-search",
-      "name": "YouTube Search",
+      "id": "a4e1fa2f-1b66-4b00-9e04-c7ed4cdd330b",
+      "name": "HTTP Request — YouTube",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1760, 300],
-      "credentials": {
-        "httpQueryAuth": {
-          "id": "",
-          "name": "YouTube API Key"
-        }
-      },
-      "onError": "continueRegularOutput"
+      "typeVersion": 4.1,
+      "position": [300, 300],
+      "_comment": "Remplacer YOUR_YOUTUBE_API_KEY par votre clé YouTube Data API v3"
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const ytData = item.json;\n  let videoId = '';\n  let videoTitle = '';\n  let videoThumbnail = '';\n\n  if (ytData.items && ytData.items.length > 0) {\n    videoId = ytData.items[0].id?.videoId || '';\n    videoTitle = ytData.items[0].snippet?.title || '';\n    videoThumbnail = ytData.items[0].snippet?.thumbnails?.high?.url || '';\n  }\n\n  // Récupérer les données de l'article précédent\n  const prevData = $('Loop Articles').first().json;\n\n  results.push({\n    json: {\n      ...prevData,\n      youtube_video_id: videoId,\n      youtube_video_title: videoTitle,\n      youtube_thumbnail: videoThumbnail,\n      youtube_embed_url: videoId ? `https://www.youtube.com/embed/${videoId}` : ''\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst parserItems = $('Code — Parser la réponse Claude').all();\nconst aggregated = {};\n\nfor (let i = 0; i < parserItems.length; i++) {\n  const prevData = parserItems[i].json;\n  const ytData = items[i] ? items[i].json : {};\n\n  let videoId = '';\n  let videoTitle = '';\n  let videoThumbnail = '';\n\n  if (ytData.items && ytData.items.length > 0 && !ytData.error) {\n    videoId = ytData.items[0].id.videoId || '';\n    videoTitle = ytData.items[0].snippet.title || '';\n    videoThumbnail = ytData.items[0].snippet.thumbnails?.high?.url || '';\n  }\n\n  const article = {\n    ...prevData,\n    youtube_video_id: videoId,\n    youtube_video_title: videoTitle,\n    youtube_thumbnail: videoThumbnail,\n    youtube_embed_url: videoId ? `https://www.youtube.com/embed/${videoId}` : ''\n  };\n\n  const code = article.country_code || 'UNKNOWN';\n  if (!aggregated[code]) {\n    aggregated[code] = [];\n  }\n  aggregated[code].push(article);\n}\n\nreturn [{ json: { news_data: aggregated, updated_at: new Date().toISOString() } }];"
       },
-      "id": "extract-video-id",
-      "name": "Extract Video ID",
+      "id": "41526f55-65c2-4293-b4b4-de063c97f461",
+      "name": "Code — Agrégation finale",
       "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1980, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Agrège tous les articles par pays\nconst allItems = $input.all();\nconst aggregated = {};\n\nfor (const item of allItems) {\n  const code = item.json.country_code;\n  if (!code) continue;\n  if (!aggregated[code]) {\n    aggregated[code] = [];\n  }\n  aggregated[code].push(item.json);\n}\n\nreturn [{\n  json: {\n    news_data: aggregated,\n    updated_at: new Date().toISOString(),\n    countries_count: Object.keys(aggregated).length,\n    total_articles: Object.values(aggregated).reduce((sum, arr) => sum + arr.length, 0)\n  }\n}];"
-      },
-      "id": "aggregate-all",
-      "name": "Aggregate All Countries",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2200, 300]
+      "typeVersion": 1,
+      "position": [520, 300]
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=https://qbmmmkceevwbifvwnlfx.supabase.co/rest/v1/g20_news_cache?id=eq.g20_daily_news",
+        "url": "https://YOUR_SUPABASE_REF.supabase.co/rest/v1/g20_news_cache?id=eq.g20_daily_news",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey", "value": "={{ $credentials.supabaseApi?.apiKey || '' }}" },
-            { "name": "Authorization", "value": "=Bearer {{ $credentials.supabaseApi?.apiKey || '' }}" },
+            { "name": "apikey", "value": "YOUR_SUPABASE_SERVICE_ROLE_KEY" },
+            { "name": "Authorization", "value": "Bearer YOUR_SUPABASE_SERVICE_ROLE_JWT" },
             { "name": "Content-Type", "value": "application/json" },
             { "name": "Prefer", "value": "return=minimal" }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ data: $json.news_data, updated_at: $json.updated_at }) }}"
+        "jsonBody": "={\n  \"data\": {{ JSON.stringify($json.news_data) }},\n  \"updated_at\": \"{{ $json.updated_at }}\"\n}",
+        "options": {}
       },
-      "id": "supabase-upsert",
-      "name": "Supabase — Update Cache",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2420, 300],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "",
-          "name": "Supabase Service Role Key"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const data = $input.first().json;\nreturn [{\n  json: {\n    status: 'success',\n    message: `G20 Pulse mis à jour: ${data.countries_count || 20} pays, ${data.total_articles || 100} articles`,\n    timestamp: new Date().toISOString()\n  }\n}];"
-      },
-      "id": "final-summary",
-      "name": "Final Summary",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2640, 300]
+      "typeVersion": 4.4,
+      "position": [740, 300],
+      "id": "2fa5af4a-748e-4504-9eab-98395c9f5422",
+      "name": "HTTP Request — Supabase",
+      "_comment": "Remplacer YOUR_SUPABASE_REF, YOUR_SUPABASE_SERVICE_ROLE_KEY et YOUR_SUPABASE_SERVICE_ROLE_JWT"
     }
   ],
+  "pinData": {},
   "connections": {
-    "CRON 06h00 UTC": {
-      "main": [[{ "node": "Set Countries JSON", "type": "main", "index": 0 }]]
+    "Schedule Trigger": {
+      "main": [[{ "node": "Set — Liste des pays G20", "type": "main", "index": 0 }]]
     },
-    "Set Countries JSON": {
-      "main": [[{ "node": "Parse Countries List", "type": "main", "index": 0 }]]
+    "Set — Liste des pays G20": {
+      "main": [[{ "node": "HTTP Request — Claude API", "type": "main", "index": 0 }]]
     },
-    "Parse Countries List": {
-      "main": [[{ "node": "Loop Countries", "type": "main", "index": 0 }]]
+    "HTTP Request — Claude API": {
+      "main": [[{ "node": "Code — Parser la réponse Claude", "type": "main", "index": 0 }]]
     },
-    "Loop Countries": {
-      "main": [
-        [{ "node": "Wait 5s (Rate Limit)", "type": "main", "index": 0 }],
-        [{ "node": "Aggregate All Countries", "type": "main", "index": 0 }]
-      ]
+    "Code — Parser la réponse Claude": {
+      "main": [[{ "node": "HTTP Request — YouTube", "type": "main", "index": 0 }]]
     },
-    "Wait 5s (Rate Limit)": {
-      "main": [[{ "node": "Claude API — Actualités", "type": "main", "index": 0 }]]
+    "HTTP Request — YouTube": {
+      "main": [[{ "node": "Code — Agrégation finale", "type": "main", "index": 0 }]]
     },
-    "Claude API — Actualités": {
-      "main": [[{ "node": "Parse Claude Response", "type": "main", "index": 0 }]]
-    },
-    "Parse Claude Response": {
-      "main": [[{ "node": "Loop Articles", "type": "main", "index": 0 }]]
-    },
-    "Loop Articles": {
-      "main": [
-        [{ "node": "YouTube Search", "type": "main", "index": 0 }],
-        [{ "node": "Loop Countries", "type": "main", "index": 0 }]
-      ]
-    },
-    "YouTube Search": {
-      "main": [[{ "node": "Extract Video ID", "type": "main", "index": 0 }]]
-    },
-    "Extract Video ID": {
-      "main": [[{ "node": "Loop Articles", "type": "main", "index": 0 }]]
-    },
-    "Aggregate All Countries": {
-      "main": [[{ "node": "Supabase — Update Cache", "type": "main", "index": 0 }]]
-    },
-    "Supabase — Update Cache": {
-      "main": [[{ "node": "Final Summary", "type": "main", "index": 0 }]]
+    "Code — Agrégation finale": {
+      "main": [[{ "node": "HTTP Request — Supabase", "type": "main", "index": 0 }]]
     }
   },
+  "active": true,
   "settings": {
     "executionOrder": "v1",
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": ""
+    "binaryMode": "separate"
   },
-  "tags": [
-    { "name": "g20-pulse" },
-    { "name": "news" },
-    { "name": "automation" }
-  ]
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
 }
