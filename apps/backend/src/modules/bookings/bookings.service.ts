@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  ConflictException,
 } from "@nestjs/common";
 import { SupabaseService } from "../../common/database/supabase.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
@@ -117,30 +118,6 @@ export class BookingsService {
     // Expirer les verrous périmés avant de vérifier les conflits
     await this.expireLocks();
 
-    // Vérifier les conflits de réservation
-    // Une réservation est en conflit si elle chevauche les dates demandées
-    // Statuts bloquants : pending_payment (lock actif), confirmed, checked_in
-    const { data: conflictingBookings, error: conflictError } = await supabase
-      .from("bookings")
-      .select("id, status, check_in, check_out")
-      .eq("room_id", createBookingDto.room_id)
-      .in("status", ["pending_payment", "confirmed", "checked_in"])
-      .lte("check_in", createBookingDto.check_out)
-      .gte("check_out", createBookingDto.check_in);
-
-    if (conflictError) {
-      console.error("Conflict check error:", conflictError);
-      throw new BadRequestException(
-        "Erreur lors de la vérification de disponibilité",
-      );
-    }
-
-    if (conflictingBookings && conflictingBookings.length > 0) {
-      throw new BadRequestException(
-        "Cette chambre n'est pas disponible pour ces dates",
-      );
-    }
-
     // Calculer les prix
     const roomPricePerNight = room.base_price;
     const subtotal = roomPricePerNight * numberOfNights;
@@ -155,40 +132,60 @@ export class BookingsService {
       Date.now() + BookingsService.LOCK_DURATION_MINUTES * 60 * 1000,
     ).toISOString();
 
-    // Créer la réservation en statut pending_payment (verrouillée)
-    const { data: booking, error: createError } = await supabase
-      .from("bookings")
-      .insert({
-        user_id: userId,
-        room_id: createBookingDto.room_id,
-        hotel_id: createBookingDto.hotel_id,
-        check_in: createBookingDto.check_in,
-        check_out: createBookingDto.check_out,
-        adults: createBookingDto.adults,
-        children: createBookingDto.children || 0,
-        infants: createBookingDto.infants || 0,
-        guests: totalGuests,
-        total_nights: numberOfNights,
-        room_price_per_night: roomPricePerNight,
-        taxes_total: taxesTotal,
-        extras_total: 0,
-        discount_amount: 0,
-        commission_amount: 0,
-        total_price: totalPrice,
-        status: "pending_payment",
-        locked_until: lockedUntil,
-        booking_reference: bookingReference,
-        channel: "direct_website",
-        special_requests: createBookingDto.special_requests,
-        arrival_time: createBookingDto.arrival_time,
-        early_checkin: createBookingDto.early_checkin || false,
-        late_checkout: createBookingDto.late_checkout || false,
-      })
-      .select()
-      .single();
+    // Création atomique via RPC (SELECT FOR UPDATE + INSERT transactionnel)
+    // Élimine la race condition entre vérification et insertion
+    const { data: booking, error: createError } = await supabase.rpc(
+      "create_booking_atomic",
+      {
+        p_user_id: userId,
+        p_room_id: createBookingDto.room_id,
+        p_hotel_id: createBookingDto.hotel_id,
+        p_check_in: createBookingDto.check_in,
+        p_check_out: createBookingDto.check_out,
+        p_adults: createBookingDto.adults,
+        p_children: createBookingDto.children || 0,
+        p_infants: createBookingDto.infants || 0,
+        p_guests: totalGuests,
+        p_total_nights: numberOfNights,
+        p_room_price_per_night: roomPricePerNight,
+        p_taxes_total: taxesTotal,
+        p_extras_total: 0,
+        p_discount_amount: 0,
+        p_commission_amount: 0,
+        p_total_price: totalPrice,
+        p_booking_reference: bookingReference,
+        p_channel: "direct_website",
+        p_special_requests: createBookingDto.special_requests || null,
+        p_arrival_time: createBookingDto.arrival_time || null,
+        p_early_checkin: createBookingDto.early_checkin || false,
+        p_late_checkout: createBookingDto.late_checkout || false,
+        p_locked_until: lockedUntil,
+      },
+    );
 
-    if (createError || !booking) {
+    if (createError) {
       console.error("Booking creation error:", createError);
+
+      // Détecter les erreurs de conflit (exclusion_violation du RPC ou contrainte EXCLUDE)
+      const errorMessage = createError.message || "";
+      if (
+        errorMessage.includes("BOOKING_CONFLICT") ||
+        errorMessage.includes("exclusion_violation") ||
+        errorMessage.includes("conflicting key value") ||
+        errorMessage.includes("bookings_no_overlap") ||
+        createError.code === "23P01"
+      ) {
+        throw new ConflictException(
+          "Cette chambre n'est pas disponible pour ces dates. Un autre utilisateur a réservé entre-temps.",
+        );
+      }
+
+      throw new BadRequestException(
+        "Erreur lors de la création de la réservation",
+      );
+    }
+
+    if (!booking) {
       throw new BadRequestException(
         "Erreur lors de la création de la réservation",
       );

@@ -14,12 +14,15 @@ export interface Booking {
   room_price_per_night: number;
   status:
     | "pending"
+    | "pending_payment"
     | "confirmed"
     | "cancelled"
     | "completed"
+    | "expired"
     | "checked_in"
     | "checked_out"
     | "no_show";
+  locked_until?: string;
   booking_reference?: string;
   channel: string;
   special_requests?: string;
