@@ -58,7 +58,7 @@ export class CreateHotelDto {
   city: string;
 
   @IsString()
-  @Matches(/^[0-9]{5}$/, { message: "Le code postal doit contenir 5 chiffres" })
+  @MaxLength(20)
   zip_code: string;
 
   @IsString()
@@ -97,15 +97,15 @@ export class CreateHotelDto {
   // Horaires
   @IsOptional()
   @IsString()
-  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, {
-    message: "Format d'heure invalide (HH:MM:SS)",
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, {
+    message: "Format d'heure invalide (HH:MM ou HH:MM:SS)",
   })
   check_in_time?: string;
 
   @IsOptional()
   @IsString()
-  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/, {
-    message: "Format d'heure invalide (HH:MM:SS)",
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/, {
+    message: "Format d'heure invalide (HH:MM ou HH:MM:SS)",
   })
   check_out_time?: string;
 

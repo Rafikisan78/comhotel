@@ -56,7 +56,7 @@ export class UpdateHotelDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^[0-9]{5}$/)
+  @MaxLength(20)
   zip_code?: string;
 
   @IsOptional()
@@ -94,12 +94,12 @@ export class UpdateHotelDto {
 
   @IsOptional()
   @IsString()
-  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/)
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/)
   check_in_time?: string;
 
   @IsOptional()
   @IsString()
-  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/)
+  @Matches(/^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/)
   check_out_time?: string;
 
   @IsOptional()
