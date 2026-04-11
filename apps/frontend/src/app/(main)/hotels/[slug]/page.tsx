@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 // Interface pour l'utilisateur connecté
 interface User {
@@ -148,7 +148,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     if (!hotelIdRef.current) return;
 
     const hotelId = hotelIdRef.current;
-    const channel = supabase
+    const channel = getSupabase()
       .channel(`bookings-hotel-${hotelId}`)
       .on(
         'postgres_changes',
@@ -171,7 +171,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      getSupabase().removeChannel(channel);
     };
   }, [hotel?.id, searchPerformed]); // eslint-disable-line react-hooks/exhaustive-deps
 

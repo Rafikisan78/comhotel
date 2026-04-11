@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
-import { supabase } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 
 interface Hotel {
   id: string;
@@ -52,7 +52,7 @@ export default function AdminHotelsPage() {
     const hotelIds = hotels.map((h) => h.id);
     const channels = hotelIds.map((hotelId) => {
       const hotelName = hotels.find((h) => h.id === hotelId)?.name || '';
-      return supabase
+      return getSupabase()
         .channel(`owner-bookings-${hotelId}`)
         .on(
           'postgres_changes',
@@ -73,7 +73,7 @@ export default function AdminHotelsPage() {
             // Récupérer le numéro de chambre
             let roomNumber = '';
             try {
-              const { data: room } = await supabase
+              const { data: room } = await getSupabase()
                 .from('rooms')
                 .select('room_number')
                 .eq('id', booking.room_id)
@@ -104,7 +104,7 @@ export default function AdminHotelsPage() {
     });
 
     return () => {
-      channels.forEach((ch) => supabase.removeChannel(ch));
+      channels.forEach((ch) => getSupabase().removeChannel(ch));
     };
   }, [hotels]); // eslint-disable-line react-hooks/exhaustive-deps
 
