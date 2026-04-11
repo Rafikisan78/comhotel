@@ -37,7 +37,7 @@ CREATE OR REPLACE FUNCTION create_booking_atomic(
   p_booking_reference VARCHAR DEFAULT '',
   p_channel VARCHAR DEFAULT 'direct_website',
   p_special_requests TEXT DEFAULT NULL,
-  p_arrival_time VARCHAR DEFAULT NULL,
+  p_arrival_time TIME DEFAULT NULL,
   p_early_checkin BOOLEAN DEFAULT FALSE,
   p_late_checkout BOOLEAN DEFAULT FALSE,
   p_locked_until TIMESTAMPTZ DEFAULT NULL
@@ -54,7 +54,7 @@ BEGIN
   PERFORM 1
   FROM bookings
   WHERE room_id = p_room_id
-    AND status NOT IN ('cancelled', 'expired', 'no_show')
+    AND status NOT IN ('cancelled'::booking_status, 'expired'::booking_status, 'no_show'::booking_status)
     AND daterange(check_in, check_out, '[)') && daterange(p_check_in, p_check_out, '[)')
   FOR UPDATE;
 
@@ -62,7 +62,7 @@ BEGIN
   SELECT COUNT(*) INTO v_conflict_count
   FROM bookings
   WHERE room_id = p_room_id
-    AND status NOT IN ('cancelled', 'expired', 'no_show')
+    AND status NOT IN ('cancelled'::booking_status, 'expired'::booking_status, 'no_show'::booking_status)
     AND daterange(check_in, check_out, '[)') && daterange(p_check_in, p_check_out, '[)');
 
   -- Si conflit, lever une exception
@@ -89,8 +89,8 @@ BEGIN
     p_adults, p_children, p_infants, p_guests,
     p_total_nights, p_room_price_per_night,
     p_taxes_total, p_extras_total, p_discount_amount, p_commission_amount,
-    p_total_price, 'pending_payment', p_locked_until,
-    p_booking_reference, p_channel,
+    p_total_price, 'pending_payment'::booking_status, p_locked_until,
+    p_booking_reference, p_channel::distribution_channel,
     p_special_requests, p_arrival_time,
     p_early_checkin, p_late_checkout
   )
