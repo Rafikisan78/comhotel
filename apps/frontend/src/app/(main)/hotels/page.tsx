@@ -27,16 +27,21 @@ export default function HotelsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showChat, setShowChat] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchHotels();
   }, []);
 
-  const fetchHotels = async () => {
+  const fetchHotels = async (query?: string) => {
     try {
       setLoading(true);
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${API_URL}/hotels`);
+      const url = query && query.trim()
+        ? `${API_URL}/hotels/search?q=${encodeURIComponent(query.trim())}`
+        : `${API_URL}/hotels`;
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error('Erreur lors de la récupération des hôtels');
@@ -49,6 +54,15 @@ export default function HotelsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimeout) clearTimeout(searchTimeout);
+    const timeout = setTimeout(() => {
+      fetchHotels(value);
+    }, 400);
+    setSearchTimeout(timeout);
   };
 
   const renderStars = (rating: number) => {
@@ -119,6 +133,32 @@ export default function HotelsPage() {
           >
             {showChat ? '📋 Voir la liste complète' : '💬 Assistant de recherche'}
           </button>
+        </div>
+
+        {/* Barre de recherche */}
+        <div className="mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Rechercher par nom d'hôtel, ville, pays, description..."
+              className="w-full px-4 py-3 pl-12 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              aria-label="Rechercher un hôtel"
+            />
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">
+              🔍
+            </span>
+            {searchQuery && (
+              <button
+                onClick={() => { setSearchQuery(''); fetchHotels(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                aria-label="Effacer la recherche"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Chatbot de recherche sécurisé */}

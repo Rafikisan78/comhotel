@@ -127,13 +127,13 @@ export class HotelsService {
     return this.mapRowToHotel(data);
   }
 
-  // Récupérer tous les hôtels actifs (pour les clients)
+  // Récupérer tous les hôtels actifs qui ont des chambres (pour les clients)
   async findAll(): Promise<Hotel[]> {
     const supabase = this.supabaseService.getClient();
 
     const { data, error } = await supabase
       .from("hotels")
-      .select("*")
+      .select("*, rooms!inner(id)")
       .eq("is_active", true)
       .order("average_rating", { ascending: false });
 
@@ -338,8 +338,9 @@ export class HotelsService {
     return data.map((row) => this.mapRowToHotel(row));
   }
 
-  // Rechercher des hôtels avec filtres
+  // Rechercher des hôtels avec filtres (uniquement ceux qui ont des chambres)
   async search(filters: {
+    q?: string;
     city?: string;
     country?: string;
     min_stars?: number;
@@ -348,7 +349,18 @@ export class HotelsService {
   }): Promise<Hotel[]> {
     const supabase = this.supabaseService.getClient();
 
-    let query = supabase.from("hotels").select("*").eq("is_active", true);
+    let query = supabase
+      .from("hotels")
+      .select("*, rooms!inner(id)")
+      .eq("is_active", true);
+
+    // Recherche textuelle générale (nom, ville, pays, description)
+    if (filters.q) {
+      const term = `%${filters.q}%`;
+      query = query.or(
+        `name.ilike.${term},city.ilike.${term},country.ilike.${term},description.ilike.${term},short_description.ilike.${term}`,
+      );
+    }
 
     if (filters.city) {
       query = query.ilike("city", `%${filters.city}%`);

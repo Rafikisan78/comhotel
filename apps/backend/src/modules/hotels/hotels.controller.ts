@@ -69,6 +69,7 @@ export class HotelsController {
    */
   @Get("search")
   async search(
+    @Query("q") q?: string,
     @Query("city") city?: string,
     @Query("country") country?: string,
     @Query("min_stars") min_stars?: number,
@@ -76,6 +77,7 @@ export class HotelsController {
     @Query("min_rating") min_rating?: number,
   ) {
     return this.hotelsService.search({
+      q,
       city,
       country,
       min_stars: min_stars ? Number(min_stars) : undefined,
