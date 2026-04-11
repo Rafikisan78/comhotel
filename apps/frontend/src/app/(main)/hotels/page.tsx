@@ -181,7 +181,7 @@ export default function HotelsPage() {
               >
                 {error}
                 <button
-                  onClick={fetchHotels}
+                  onClick={() => fetchHotels(searchQuery)}
                   className="ml-2 underline hover:no-underline"
                 >
                   Réessayer
