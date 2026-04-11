@@ -25,6 +25,7 @@ export default function AdminHotelsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
     fetchHotels();
@@ -35,15 +36,18 @@ export default function AdminHotelsPage() {
       setLoading(true);
       setError('');
 
-      // Admin endpoint qui retourne tous les hôtels (actifs et inactifs)
-      const response = await apiClient.get('/hotels/admin/all');
+      const userRole = localStorage.getItem('user_role') || '';
+      setUserRole(userRole);
+      // Admin voit tous les hôtels, hotel_owner voit uniquement les siens
+      const endpoint = userRole === 'admin' ? '/hotels/admin/all' : '/hotels/my-hotels';
+      const response = await apiClient.get(endpoint);
       setHotels(response.data);
     } catch (err: any) {
       if (err.response?.status === 401) {
         setError('Vous devez être connecté');
         router.push('/login');
       } else if (err.response?.status === 403) {
-        setError('Accès non autorisé - Admin requis');
+        setError('Accès non autorisé');
       } else {
         setError(err.response?.data?.message || 'Erreur lors de la récupération des hôtels');
       }
@@ -101,7 +105,7 @@ export default function AdminHotelsPage() {
                 Gestion des Hôtels
               </h1>
               <p className="text-gray-600 mt-1">
-                Gérez tous les hôtels de la plateforme
+                {userRole === 'admin' ? 'Gérez tous les hôtels de la plateforme' : 'Gérez vos hôtels'}
               </p>
             </div>
             <button
