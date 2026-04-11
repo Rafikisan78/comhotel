@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
+import { supabase } from '@/lib/supabase';
 
 // Interface pour l'utilisateur connecté
 interface User {
@@ -133,10 +134,46 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
 
+  // Référence pour l'ID hôtel (utilisé dans le Realtime)
+  const hotelIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     checkAuth();
     fetchHotel();
   }, [params.slug]);
+
+  // US-3.1 : Abonnement Supabase Realtime sur la table bookings
+  // Met à jour le calendrier en temps réel quand une réservation change
+  useEffect(() => {
+    if (!hotelIdRef.current) return;
+
+    const hotelId = hotelIdRef.current;
+    const channel = supabase
+      .channel(`bookings-hotel-${hotelId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+          filter: `hotel_id=eq.${hotelId}`,
+        },
+        (payload) => {
+          console.log('Realtime booking update:', payload.eventType);
+          // Recharger les données du calendrier
+          fetchBookedDates(hotelId);
+          // Si une recherche de chambres est en cours, recharger aussi
+          if (searchPerformed && searchCheckIn && searchCheckOut) {
+            searchAvailableRooms();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [hotel?.id, searchPerformed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const checkAuth = async () => {
     const token = localStorage.getItem('access_token');
@@ -330,6 +367,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
 
       const hotelData = await hotelResponse.json();
       setHotel(hotelData);
+      hotelIdRef.current = hotelData.id;
 
       // Récupérer les chambres de cet hôtel
       const roomsResponse = await fetch(`${API_URL}/rooms/hotel/${hotelData.id}`);

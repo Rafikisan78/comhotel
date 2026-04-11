@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
+import { supabase } from '@/lib/supabase';
 
 interface Hotel {
   id: string;
@@ -27,9 +28,85 @@ export default function AdminHotelsPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [userRole, setUserRole] = useState<string>('');
 
+  // US-3.2 : Notifications temps réel pour les réservations
+  interface BookingNotification {
+    id: string;
+    hotelName: string;
+    roomNumber: string;
+    status: string;
+    checkIn: string;
+    checkOut: string;
+    timestamp: Date;
+  }
+  const [notifications, setNotifications] = useState<BookingNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   useEffect(() => {
     fetchHotels();
   }, []);
+
+  // US-3.2 : Abonnement Realtime sur les réservations des hôtels du propriétaire
+  useEffect(() => {
+    if (hotels.length === 0) return;
+
+    const hotelIds = hotels.map((h) => h.id);
+    const channels = hotelIds.map((hotelId) => {
+      const hotelName = hotels.find((h) => h.id === hotelId)?.name || '';
+      return supabase
+        .channel(`owner-bookings-${hotelId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'bookings',
+            filter: `hotel_id=eq.${hotelId}`,
+          },
+          async (payload) => {
+            const booking = payload.new as any;
+            if (!booking || !booking.status) return;
+
+            // Notifier seulement pour confirmed, cancelled, pending_payment
+            const notifyStatuses = ['confirmed', 'cancelled', 'pending_payment'];
+            if (!notifyStatuses.includes(booking.status)) return;
+
+            // Récupérer le numéro de chambre
+            let roomNumber = '';
+            try {
+              const { data: room } = await supabase
+                .from('rooms')
+                .select('room_number')
+                .eq('id', booking.room_id)
+                .single();
+              roomNumber = room?.room_number || '';
+            } catch {}
+
+            const statusLabels: Record<string, string> = {
+              confirmed: 'Réservation confirmée',
+              cancelled: 'Réservation annulée',
+              pending_payment: 'Nouvelle réservation (en attente)',
+            };
+
+            const notification: BookingNotification = {
+              id: booking.id,
+              hotelName,
+              roomNumber,
+              status: booking.status,
+              checkIn: booking.check_in,
+              checkOut: booking.check_out,
+              timestamp: new Date(),
+            };
+
+            setNotifications((prev) => [notification, ...prev].slice(0, 20));
+          }
+        )
+        .subscribe();
+    });
+
+    return () => {
+      channels.forEach((ch) => supabase.removeChannel(ch));
+    };
+  }, [hotels]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchHotels = async () => {
     try {
@@ -108,12 +185,86 @@ export default function AdminHotelsPage() {
                 {userRole === 'admin' ? 'Gérez tous les hôtels de la plateforme' : 'Gérez vos hôtels'}
               </p>
             </div>
-            <button
-              onClick={() => router.push('/admin/hotels/new')}
-              className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              + Nouvel Hôtel
-            </button>
+            <div className="flex items-center gap-3">
+              {/* US-3.2 : Cloche de notifications temps réel */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative bg-white text-gray-700 p-2 rounded-full shadow hover:bg-gray-100 transition-colors"
+                  title="Notifications de réservations"
+                >
+                  <span className="text-xl">🔔</span>
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {notifications.length}
+                    </span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 top-12 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-96 overflow-y-auto">
+                    <div className="p-3 border-b border-gray-200 flex justify-between items-center">
+                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={() => setNotifications([])}
+                          className="text-xs text-gray-500 hover:text-red-500"
+                        >
+                          Tout effacer
+                        </button>
+                      )}
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">
+                        Aucune notification
+                      </div>
+                    ) : (
+                      notifications.map((notif, i) => (
+                        <div
+                          key={`${notif.id}-${i}`}
+                          className={`p-3 border-b border-gray-100 hover:bg-gray-50 ${
+                            notif.status === 'confirmed'
+                              ? 'border-l-4 border-l-green-500'
+                              : notif.status === 'cancelled'
+                                ? 'border-l-4 border-l-red-500'
+                                : 'border-l-4 border-l-yellow-500'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span>
+                              {notif.status === 'confirmed' ? '✅' : notif.status === 'cancelled' ? '❌' : '⏳'}
+                            </span>
+                            <span className="font-medium text-sm text-gray-900">
+                              {notif.status === 'confirmed'
+                                ? 'Réservation confirmée'
+                                : notif.status === 'cancelled'
+                                  ? 'Réservation annulée'
+                                  : 'Nouvelle réservation'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600">
+                            {notif.hotelName} — Chambre {notif.roomNumber}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {notif.checkIn} → {notif.checkOut}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-1">
+                            {notif.timestamp.toLocaleTimeString('fr-FR')}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => router.push('/admin/hotels/new')}
+                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                + Nouvel Hôtel
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
