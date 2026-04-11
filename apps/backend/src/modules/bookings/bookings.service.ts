@@ -463,14 +463,14 @@ export class BookingsService {
     const totalRooms = rooms.length;
     const roomIds = rooms.map((r) => r.id);
 
-    // 2. Récupérer toutes les réservations actives pour ces chambres
+    // 2. Récupérer les réservations bloquantes pour ces chambres
     const today = new Date().toISOString().split("T")[0];
+    await this.expireLocks();
     const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select("room_id, check_in, check_out")
       .in("room_id", roomIds)
-      .neq("status", "cancelled")
-      .neq("status", "completed")
+      .in("status", ["pending_payment", "confirmed", "checked_in"])
       .gte("check_out", today);
 
     if (bookingsError) {
@@ -642,13 +642,14 @@ export class BookingsService {
 
     const roomIds = rooms.map((r) => r.id);
 
-    // 2. Récupérer toutes les réservations actives pour ces chambres
+    // 2. Récupérer les réservations bloquantes pour ces chambres
     const today = new Date().toISOString().split("T")[0];
+    await this.expireLocks();
     const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select("room_id, check_in, check_out, status")
       .in("room_id", roomIds)
-      .neq("status", "cancelled")
+      .in("status", ["pending_payment", "confirmed", "checked_in"])
       .gte("check_out", today)
       .order("check_in", { ascending: true });
 

@@ -21,6 +21,20 @@ interface User {
 interface BookingPeriod {
   check_in: string;
   check_out: string;
+  status?: string;
+}
+
+interface RoomAvailability {
+  id: string;
+  room_number: string;
+  room_type: string;
+}
+
+interface RoomBooking {
+  room_id: string;
+  check_in: string;
+  check_out: string;
+  status: string;
 }
 
 interface Hotel {
@@ -94,6 +108,8 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   // État pour le calendrier de disponibilité
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [bookedDates, setBookedDates] = useState<BookingPeriod[]>([]);
+  const [calendarRooms, setCalendarRooms] = useState<RoomAvailability[]>([]);
+  const [calendarBookings, setCalendarBookings] = useState<RoomBooking[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
 
   // Erreurs de validation des dates
@@ -138,15 +154,68 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     }
   };
 
-  // Charger les réservations existantes pour le calendrier
+  // Charger les réservations existantes pour le calendrier (par chambre)
   const fetchBookedDates = useCallback(async (hotelId: string) => {
     setCalendarLoading(true);
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-      const response = await fetch(`${API_URL}/bookings/hotel/${hotelId}/calendar`);
+      const response = await fetch(`${API_URL}/bookings/hotel/${hotelId}/rooms-availability`);
       if (response.ok) {
         const data = await response.json();
-        setBookedDates(data);
+        setCalendarRooms(data.rooms || []);
+        setCalendarBookings(data.bookings || []);
+
+        // Calculer les périodes où TOUTES les chambres sont prises
+        const totalRooms = (data.rooms || []).length;
+        if (totalRooms === 0) {
+          setBookedDates([]);
+          return;
+        }
+
+        // Construire une map date -> nb chambres réservées
+        const dateMap = new Map<string, Set<string>>();
+        for (const booking of (data.bookings || [])) {
+          const checkIn = new Date(booking.check_in);
+          const checkOut = new Date(booking.check_out);
+          const current = new Date(checkIn);
+          while (current < checkOut) {
+            const dateStr = current.toISOString().split('T')[0];
+            if (!dateMap.has(dateStr)) dateMap.set(dateStr, new Set());
+            dateMap.get(dateStr)!.add(booking.room_id);
+            current.setDate(current.getDate() + 1);
+          }
+        }
+
+        // Dates où toutes les chambres sont réservées
+        const fullyBooked: string[] = [];
+        for (const [date, rooms] of dateMap.entries()) {
+          if (rooms.size >= totalRooms) fullyBooked.push(date);
+        }
+        fullyBooked.sort();
+
+        // Grouper en périodes
+        const periods: BookingPeriod[] = [];
+        if (fullyBooked.length > 0) {
+          let start = fullyBooked[0];
+          let end = fullyBooked[0];
+          for (let i = 1; i < fullyBooked.length; i++) {
+            const prev = new Date(end);
+            prev.setDate(prev.getDate() + 1);
+            if (fullyBooked[i] === prev.toISOString().split('T')[0]) {
+              end = fullyBooked[i];
+            } else {
+              const endDate = new Date(end);
+              endDate.setDate(endDate.getDate() + 1);
+              periods.push({ check_in: start, check_out: endDate.toISOString().split('T')[0] });
+              start = fullyBooked[i];
+              end = fullyBooked[i];
+            }
+          }
+          const endDate = new Date(end);
+          endDate.setDate(endDate.getDate() + 1);
+          periods.push({ check_in: start, check_out: endDate.toISOString().split('T')[0] });
+        }
+        setBookedDates(periods);
       }
     } catch (err) {
       console.error('Error fetching booked dates:', err);
@@ -180,15 +249,31 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     return '';
   };
 
-  // Vérifier si une date est réservée
-  const isDateBooked = (date: Date): boolean => {
+  // Compter les chambres réservées pour une date donnée
+  const getRoomsBookedCount = (date: Date): number => {
     const dateStr = date.toISOString().split('T')[0];
-    return bookedDates.some(booking => {
+    const bookedRoomIds = new Set<string>();
+    for (const booking of calendarBookings) {
       const checkIn = new Date(booking.check_in);
       const checkOut = new Date(booking.check_out);
-      const currentDate = new Date(dateStr);
-      return currentDate >= checkIn && currentDate < checkOut;
-    });
+      const current = new Date(dateStr);
+      if (current >= checkIn && current < checkOut) {
+        bookedRoomIds.add(booking.room_id);
+      }
+    }
+    return bookedRoomIds.size;
+  };
+
+  // Vérifier si une date est entièrement réservée (toutes les chambres prises)
+  const isDateFullyBooked = (date: Date): boolean => {
+    if (calendarRooms.length === 0) return false;
+    return getRoomsBookedCount(date) >= calendarRooms.length;
+  };
+
+  // Vérifier si une date est partiellement réservée (au moins 1 chambre prise)
+  const isDatePartiallyBooked = (date: Date): boolean => {
+    const count = getRoomsBookedCount(date);
+    return count > 0 && count < calendarRooms.length;
   };
 
   // Générer les jours du calendrier
@@ -199,11 +284,11 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     const lastDay = new Date(year, monthIndex + 1, 0);
     const startDayOfWeek = firstDay.getDay();
 
-    const days: { date: Date | null; isBooked: boolean; isPast: boolean }[] = [];
+    const days: { date: Date | null; isFullyBooked: boolean; isPartiallyBooked: boolean; isPast: boolean; availableCount: number }[] = [];
 
     // Jours vides avant le premier jour du mois
     for (let i = 0; i < startDayOfWeek; i++) {
-      days.push({ date: null, isBooked: false, isPast: false });
+      days.push({ date: null, isFullyBooked: false, isPartiallyBooked: false, isPast: false, availableCount: 0 });
     }
 
     const today = new Date();
@@ -212,10 +297,13 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     // Jours du mois
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(year, monthIndex, day);
+      const bookedCount = getRoomsBookedCount(date);
       days.push({
         date,
-        isBooked: isDateBooked(date),
-        isPast: date < today
+        isFullyBooked: isDateFullyBooked(date),
+        isPartiallyBooked: isDatePartiallyBooked(date),
+        isPast: date < today,
+        availableCount: calendarRooms.length - bookedCount,
       });
     }
 
@@ -241,10 +329,9 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
       setHotel(hotelData);
 
       // Récupérer les chambres de cet hôtel
-      const roomsResponse = await fetch(`${API_URL}/rooms`);
+      const roomsResponse = await fetch(`${API_URL}/rooms/hotel/${hotelData.id}`);
       if (roomsResponse.ok) {
-        const allRooms = await roomsResponse.json();
-        const hotelRooms = allRooms.filter((room: Room) => room.hotel_id === hotelData.id && room.is_active);
+        const hotelRooms = await roomsResponse.json();
         setRooms(hotelRooms);
       }
 
@@ -811,13 +898,16 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                 {generateCalendarDays(calendarMonth).map((day, index) => (
                   <div
                     key={index}
+                    title={day.date && !day.isPast ? `${day.availableCount}/${calendarRooms.length} chambre${day.availableCount > 1 ? 's' : ''} disponible${day.availableCount > 1 ? 's' : ''}` : ''}
                     className={`text-center py-2 text-sm rounded-md ${
                       !day.date
                         ? 'bg-transparent'
                         : day.isPast
                         ? 'bg-gray-100 text-gray-400'
-                        : day.isBooked
+                        : day.isFullyBooked
                         ? 'bg-red-100 text-red-700'
+                        : day.isPartiallyBooked
+                        ? 'bg-orange-100 text-orange-700'
                         : 'bg-green-100 text-green-700'
                     }`}
                   >
@@ -828,20 +918,29 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
             )}
 
             {/* Légende */}
-            <div className="mt-4 flex flex-wrap gap-4 text-xs">
+            <div className="mt-4 flex flex-wrap gap-3 text-xs">
               <div className="flex items-center gap-1">
                 <div className="w-4 h-4 bg-green-100 rounded"></div>
                 <span className="text-gray-600">Disponible</span>
               </div>
               <div className="flex items-center gap-1">
+                <div className="w-4 h-4 bg-orange-100 rounded"></div>
+                <span className="text-gray-600">Partiel</span>
+              </div>
+              <div className="flex items-center gap-1">
                 <div className="w-4 h-4 bg-red-100 rounded"></div>
-                <span className="text-gray-600">Réservé</span>
+                <span className="text-gray-600">Complet</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-4 h-4 bg-gray-100 rounded"></div>
                 <span className="text-gray-600">Passé</span>
               </div>
             </div>
+            {calendarRooms.length > 0 && (
+              <p className="mt-2 text-xs text-gray-500">
+                {calendarRooms.length} chambre{calendarRooms.length > 1 ? 's' : ''} dans cet hôtel
+              </p>
+            )}
           </div>
         </div>
 

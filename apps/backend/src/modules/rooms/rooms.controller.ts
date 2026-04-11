@@ -24,6 +24,11 @@ export class RoomsController {
     return this.roomsService.findAll();
   }
 
+  @Get("hotel/:hotelId")
+  findByHotel(@Param("hotelId") hotelId: string) {
+    return this.roomsService.findByHotel(hotelId);
+  }
+
   @Get(":id")
   findOne(@Param("id") id: string) {
     return this.roomsService.findOne(id);
