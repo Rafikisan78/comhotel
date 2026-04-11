@@ -319,7 +319,7 @@ Comment puis-je vous aider ?`,
                       onClick={() => handleSuggestionClick(suggestion)}
                       className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors"
                     >
-                      {sanitizeForDisplay(suggestion)}
+                      {suggestion}
                     </button>
                   ))}
                 </div>
