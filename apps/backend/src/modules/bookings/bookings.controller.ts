@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Delete,
@@ -31,6 +32,19 @@ export class BookingsController {
   @Get("my-bookings")
   findMyBookings(@Request() req: any) {
     return this.bookingsService.findAllByUser(req.user.userId || req.user.sub);
+  }
+
+  // Confirmer une réservation en attente de paiement
+  @UseGuards(JwtAuthGuard)
+  @Patch(":id/confirm")
+  confirm(@Request() req: any, @Param("id") id: string) {
+    return this.bookingsService.confirm(id, req.user.userId || req.user.sub);
+  }
+
+  // Expirer les verrous périmés (peut être appelé par un cron)
+  @Post("expire-locks")
+  expireLocks() {
+    return this.bookingsService.expireLocks();
   }
 
   // Endpoint public pour vérifier la disponibilité (pas besoin d'authentification)

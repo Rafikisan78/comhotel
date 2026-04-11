@@ -96,9 +96,11 @@ export default function MyBookingsPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: { [key: string]: { bg: string; text: string; label: string } } = {
+      pending_payment: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'En attente de paiement' },
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'En attente' },
       confirmed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Confirmée' },
       cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Annulée' },
+      expired: { bg: 'bg-gray-100', text: 'text-gray-500', label: 'Expirée' },
       checked_in: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Check-in effectué' },
       checked_out: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Terminée' },
       completed: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Complétée' },

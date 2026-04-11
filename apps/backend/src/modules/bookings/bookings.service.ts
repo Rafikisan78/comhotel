@@ -10,12 +10,44 @@ import { Booking } from "./entities/booking.entity";
 
 @Injectable()
 export class BookingsService {
+  private static readonly LOCK_DURATION_MINUTES = 15;
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   private generateBookingReference(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     return `BK${timestamp}${random}`;
+  }
+
+  /**
+   * Expire les verrous (pending_payment) dont le délai est dépassé.
+   * Appelé avant chaque vérification de disponibilité et périodiquement.
+   */
+  async expireLocks(): Promise<number> {
+    const supabase = this.supabaseService.getClient();
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .update({
+        status: "expired",
+        cancellation_reason: "Délai de paiement expiré (15 minutes)",
+        cancelled_at: now,
+      })
+      .eq("status", "pending_payment")
+      .lt("locked_until", now)
+      .select("id");
+
+    if (error) {
+      console.error("Error expiring locks:", error);
+      return 0;
+    }
+
+    if (data && data.length > 0) {
+      console.log(`Expired ${data.length} pending booking(s)`);
+    }
+    return data?.length || 0;
   }
 
   async create(
@@ -82,27 +114,19 @@ export class BookingsService {
       );
     }
 
+    // Expirer les verrous périmés avant de vérifier les conflits
+    await this.expireLocks();
+
     // Vérifier les conflits de réservation
     // Une réservation est en conflit si elle chevauche les dates demandées
-    // Seuls les statuts actifs bloquent la chambre: pending, confirmed, checked_in
+    // Statuts bloquants : pending_payment (lock actif), confirmed, checked_in
     const { data: conflictingBookings, error: conflictError } = await supabase
       .from("bookings")
       .select("id, status, check_in, check_out")
       .eq("room_id", createBookingDto.room_id)
-      .neq("status", "cancelled")
-      .neq("status", "completed")
+      .in("status", ["pending_payment", "confirmed", "checked_in"])
       .lte("check_in", createBookingDto.check_out)
       .gte("check_out", createBookingDto.check_in);
-
-    console.log("Conflict check for room:", createBookingDto.room_id);
-    console.log(
-      "Dates:",
-      createBookingDto.check_in,
-      "to",
-      createBookingDto.check_out,
-    );
-    console.log("Conflicting bookings found:", conflictingBookings);
-    console.log("Error:", conflictError);
 
     if (conflictError) {
       console.error("Conflict check error:", conflictError);
@@ -126,7 +150,12 @@ export class BookingsService {
     // Générer une référence de réservation unique
     const bookingReference = this.generateBookingReference();
 
-    // Créer la réservation
+    // Calculer la date d'expiration du verrou (15 minutes)
+    const lockedUntil = new Date(
+      Date.now() + BookingsService.LOCK_DURATION_MINUTES * 60 * 1000,
+    ).toISOString();
+
+    // Créer la réservation en statut pending_payment (verrouillée)
     const { data: booking, error: createError } = await supabase
       .from("bookings")
       .insert({
@@ -146,7 +175,8 @@ export class BookingsService {
         discount_amount: 0,
         commission_amount: 0,
         total_price: totalPrice,
-        status: "confirmed",
+        status: "pending_payment",
+        locked_until: lockedUntil,
         booking_reference: bookingReference,
         channel: "direct_website",
         special_requests: createBookingDto.special_requests,
@@ -283,6 +313,73 @@ export class BookingsService {
     return cancelledBooking;
   }
 
+  /**
+   * Confirmer une réservation en attente de paiement.
+   * Vérifie que le verrou n'a pas expiré.
+   */
+  async confirm(id: string, userId: string): Promise<Booking> {
+    const supabase = this.supabaseService.getClient();
+
+    const { data: booking, error: fetchError } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !booking) {
+      throw new NotFoundException("Réservation non trouvée");
+    }
+
+    if (booking.user_id !== userId) {
+      throw new ForbiddenException("Accès non autorisé");
+    }
+
+    if (booking.status !== "pending_payment") {
+      throw new BadRequestException(
+        booking.status === "confirmed"
+          ? "Cette réservation est déjà confirmée"
+          : "Cette réservation ne peut pas être confirmée",
+      );
+    }
+
+    // Vérifier que le verrou n'a pas expiré
+    if (booking.locked_until && new Date(booking.locked_until) < new Date()) {
+      // Expirer la réservation
+      await supabase
+        .from("bookings")
+        .update({
+          status: "expired",
+          cancellation_reason: "Délai de paiement expiré (15 minutes)",
+          cancelled_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      throw new BadRequestException(
+        "Le délai de confirmation a expiré. Veuillez refaire une réservation.",
+      );
+    }
+
+    // Confirmer la réservation
+    const { data: confirmedBooking, error: confirmError } = await supabase
+      .from("bookings")
+      .update({
+        status: "confirmed",
+        locked_until: null,
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (confirmError || !confirmedBooking) {
+      console.error("Confirm error:", confirmError);
+      throw new BadRequestException(
+        "Erreur lors de la confirmation de la réservation",
+      );
+    }
+
+    return confirmedBooking;
+  }
+
   async findAll(): Promise<Booking[]> {
     const supabase = this.supabaseService.getClient();
 
@@ -314,7 +411,10 @@ export class BookingsService {
   ): Promise<boolean> {
     const supabase = this.supabaseService.getClient();
 
-    // D'abord, vérifier si la chambre existe
+    // Expirer les verrous périmés
+    await this.expireLocks();
+
+    // Vérifier si la chambre existe
     const { data: room, error: roomError } = await supabase
       .from("rooms")
       .select("id, room_number")
@@ -322,27 +422,17 @@ export class BookingsService {
       .single();
 
     if (roomError || !room) {
-      console.log("Room not found:", roomId, roomError);
       return false;
     }
 
-    // Une réservation est en conflit si elle chevauche les dates demandées
-    // Seuls les statuts actifs bloquent la chambre: pending, confirmed, checked_in
+    // Statuts bloquants : pending_payment (lock actif), confirmed, checked_in
     const { data, error } = await supabase
       .from("bookings")
       .select("id, check_in, check_out, status")
       .eq("room_id", roomId)
-      .neq("status", "cancelled")
-      .neq("status", "completed")
+      .in("status", ["pending_payment", "confirmed", "checked_in"])
       .lte("check_in", checkOut)
       .gte("check_out", checkIn);
-
-    console.log("=== AVAILABILITY CHECK ===");
-    console.log("Room:", roomId, "- Found:", room?.room_number);
-    console.log("Dates:", checkIn, "to", checkOut);
-    console.log("Conflicting bookings:", data);
-    console.log("Query error:", error);
-    console.log("========================");
 
     if (error) {
       console.error("Availability check error:", error);

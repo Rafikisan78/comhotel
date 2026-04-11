@@ -109,6 +109,11 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
+  // État pour le verrouillage / confirmation
+  const [pendingBooking, setPendingBooking] = useState<any>(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [lockCountdown, setLockCountdown] = useState(0);
+
   useEffect(() => {
     checkAuth();
     fetchHotel();
@@ -351,6 +356,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     setSpecialRequests('');
   };
 
+  // Étape 1 : Créer la réservation (verrouillage pendant 15 min)
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRoom || !hotel) return;
@@ -370,11 +376,13 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
         special_requests: specialRequests,
       };
 
-      await apiClient.post('/bookings', bookingData);
+      const response = await apiClient.post('/bookings', bookingData);
+      setPendingBooking(response.data);
 
-      alert('Réservation confirmée ! Vous recevrez un email de confirmation.');
-      closeBookingModal();
-      router.push('/bookings/my-bookings');
+      // Démarrer le compte à rebours (15 minutes = 900 secondes)
+      const lockedUntil = new Date(response.data.locked_until);
+      const remainingSeconds = Math.max(0, Math.floor((lockedUntil.getTime() - Date.now()) / 1000));
+      setLockCountdown(remainingSeconds);
     } catch (err: any) {
       console.error('Booking error:', err);
       setBookingError(
@@ -385,6 +393,55 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
       setBookingLoading(false);
     }
   };
+
+  // Étape 2 : Confirmer la réservation
+  const handleConfirmBooking = async () => {
+    if (!pendingBooking) return;
+
+    setConfirmLoading(true);
+    setBookingError('');
+
+    try {
+      await apiClient.patch(`/bookings/${pendingBooking.id}/confirm`);
+      alert('Réservation confirmée avec succès !');
+      setPendingBooking(null);
+      setLockCountdown(0);
+      closeBookingModal();
+      router.push('/bookings/my-bookings');
+    } catch (err: any) {
+      console.error('Confirm error:', err);
+      setBookingError(
+        err.response?.data?.message ||
+        'Erreur lors de la confirmation. Veuillez réessayer.'
+      );
+      // Si expiré, reset
+      if (err.response?.data?.message?.includes('expiré')) {
+        setPendingBooking(null);
+        setLockCountdown(0);
+      }
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  // Compte à rebours
+  useEffect(() => {
+    if (lockCountdown <= 0) return;
+
+    const timer = setInterval(() => {
+      setLockCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setPendingBooking(null);
+          setBookingError('Le délai de confirmation a expiré. Veuillez refaire une réservation.');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [lockCountdown > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderStars = (rating: number) => {
     return '⭐'.repeat(rating);
@@ -964,6 +1021,78 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                 </div>
               )}
 
+              {/* Étape 2 : Confirmation avec compte à rebours */}
+              {pendingBooking ? (
+                <div className="space-y-4">
+                  {/* Compte à rebours */}
+                  <div className={`p-4 rounded-md text-center ${lockCountdown > 60 ? 'bg-orange-50 border border-orange-200' : 'bg-red-50 border border-red-200'}`}>
+                    <p className={`text-sm font-medium ${lockCountdown > 60 ? 'text-orange-700' : 'text-red-700'}`}>
+                      Chambre verrouillée pour vous pendant
+                    </p>
+                    <p className={`text-3xl font-bold mt-1 ${lockCountdown > 60 ? 'text-orange-600' : 'text-red-600'}`}>
+                      {Math.floor(lockCountdown / 60)}:{(lockCountdown % 60).toString().padStart(2, '0')}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Confirmez avant l'expiration du delai
+                    </p>
+                  </div>
+
+                  {/* Récapitulatif */}
+                  <div className="bg-blue-50 p-4 rounded-md">
+                    <h3 className="font-semibold text-gray-900 mb-2">Recapitulatif</h3>
+                    <div className="text-sm space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Reference :</span>
+                        <span className="font-mono font-semibold">{pendingBooking.booking_reference}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Chambre :</span>
+                        <span>{formatRoomType(selectedRoom.room_type)} - N°{selectedRoom.room_number}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Arrivee :</span>
+                        <span>{new Date(pendingBooking.check_in).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Depart :</span>
+                        <span>{new Date(pendingBooking.check_out).toLocaleDateString('fr-FR')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Nuits :</span>
+                        <span>{pendingBooking.total_nights}</span>
+                      </div>
+                      <div className="border-t border-blue-200 pt-2 mt-2">
+                        <div className="flex justify-between">
+                          <span className="text-lg font-bold text-gray-900">Total :</span>
+                          <span className="text-lg font-bold text-blue-600">
+                            {Number(pendingBooking.total_price).toFixed(2)}€
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Boutons */}
+                  <div className="flex gap-4 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => { setPendingBooking(null); setLockCountdown(0); closeBookingModal(); }}
+                      className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmBooking}
+                      disabled={confirmLoading || lockCountdown === 0}
+                      className="flex-1 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      {confirmLoading ? 'Confirmation...' : 'Confirmer et payer'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+              /* Étape 1 : Formulaire de réservation */
               <form onSubmit={handleBooking}>
                 <div className="space-y-4">
                   {/* Dates */}
@@ -1102,11 +1231,12 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                       disabled={bookingLoading || calculateNights() === 0}
                       className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      {bookingLoading ? 'Réservation...' : 'Confirmer la réservation'}
+                      {bookingLoading ? 'Verrouillage...' : 'Reserver cette chambre'}
                     </button>
                   </div>
                 </div>
               </form>
+              )}
             </div>
           </div>
         </div>
