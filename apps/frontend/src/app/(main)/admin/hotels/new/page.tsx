@@ -111,7 +111,7 @@ export default function NewHotelPage() {
         check_in_time: formData.check_in_time || null,
         check_out_time: formData.check_out_time || null,
         reception_24h: formData.reception_24h || false,
-        star_rating: formData.star_rating,
+        star_rating: Number(formData.star_rating),
         chain_name: formData.chain_name || null,
         is_independent: formData.is_independent ?? true,
         amenities: formData.amenities || [],
