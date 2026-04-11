@@ -342,8 +342,14 @@ export class ChatbotService {
 
   /**
    * Vérifie si le message a un contexte lié aux hôtels
+   * Accepte aussi les messages courts (noms de villes) comme contexte valide
    */
   private hasHotelContext(message: string): boolean {
+    // Les messages courts (< 30 chars) sont probablement des noms de ville/hôtel
+    if (message.length <= 30) {
+      return true;
+    }
+
     const allKeywords = [
       ...HOTEL_KEYWORDS.cities,
       ...HOTEL_KEYWORDS.roomTypes,
@@ -371,15 +377,40 @@ export class ChatbotService {
   private analyzeIntent(message: string): {
     action: string;
     params: SearchFilters;
+    searchQuery?: string;
   } {
     const lowerMessage = message.toLowerCase();
     const params: SearchFilters = {};
 
-    // Extraction de la ville
+    // Extraction de la ville depuis la liste connue
     for (const city of HOTEL_KEYWORDS.cities) {
       if (lowerMessage.includes(city)) {
         params.city = city.charAt(0).toUpperCase() + city.slice(1);
         break;
+      }
+    }
+
+    // Si aucune ville connue, extraire le terme de recherche libre
+    // pour rechercher dans name, city, description via ilike
+    let searchQuery: string | undefined;
+    if (!params.city) {
+      // Extraire le terme après "à", "a", "in", ou utiliser le message brut
+      const cityMatch = lowerMessage.match(
+        /(?:à|a|in|de|dans)\s+([a-zàâäéèêëïîôùûüÿçœæ\s-]+?)(?:\s+(?:avec|pour|du|\d)|$)/i,
+      );
+      if (cityMatch) {
+        searchQuery = cityMatch[1].trim();
+      } else {
+        // Si le message est un seul mot ou nom, l'utiliser comme recherche
+        const cleaned = lowerMessage
+          .replace(
+            /\b(hotel|hôtel|cherche|recherche|trouve|montre|affiche|liste|voir|disponible|étoiles?|stars?|avec|pour|les|des|un|une|je|moi|le|la)\b/gi,
+            "",
+          )
+          .trim();
+        if (cleaned.length >= 3) {
+          searchQuery = cleaned;
+        }
       }
     }
 
@@ -440,7 +471,7 @@ export class ChatbotService {
       action = "check_availability";
     }
 
-    return { action, params };
+    return { action, params, searchQuery };
   }
 
   /**
@@ -465,7 +496,7 @@ export class ChatbotService {
    * Exécute l'intention identifiée (actions en lecture seule - OWASP LLM08)
    */
   private async executeIntent(
-    intent: { action: string; params: SearchFilters },
+    intent: { action: string; params: SearchFilters; searchQuery?: string },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _originalMessage: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -480,11 +511,11 @@ export class ChatbotService {
       case "check_availability":
       case "search":
       default:
-        // Construction de la requête de recherche
+        // Construction de la requête — uniquement les hôtels avec des chambres
         let query = supabase
           .from("hotels")
           .select(
-            "id, name, slug, city, country, stars, short_description, cover_image, amenities, is_active, is_featured",
+            "id, name, slug, city, country, stars, short_description, cover_image, amenities, is_active, is_featured, rooms!inner(id)",
           )
           .eq("is_active", true)
           .order("is_featured", { ascending: false })
@@ -494,6 +525,12 @@ export class ChatbotService {
         // Application des filtres
         if (intent.params.city) {
           query = query.ilike("city", `%${intent.params.city}%`);
+        } else if (intent.searchQuery) {
+          // Recherche libre sur nom, ville, pays, description
+          const term = `%${intent.searchQuery}%`;
+          query = query.or(
+            `name.ilike.${term},city.ilike.${term},country.ilike.${term},description.ilike.${term},short_description.ilike.${term}`,
+          );
         }
 
         if (intent.params.minStars) {
