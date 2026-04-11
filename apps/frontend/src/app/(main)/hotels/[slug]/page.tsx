@@ -112,6 +112,9 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   const [calendarBookings, setCalendarBookings] = useState<RoomBooking[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
 
+  // Réservations par chambre pour mini-calendriers
+  const [roomBookings, setRoomBookings] = useState<Map<string, BookingPeriod[]>>(new Map());
+
   // Erreurs de validation des dates
   const [dateError, setDateError] = useState('');
 
@@ -386,12 +389,75 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
       const results = await Promise.all(availabilityPromises);
       const available = results.filter((room): room is Room => room !== null);
       setAvailableRooms(available);
+
+      // Charger les réservations par chambre pour les mini-calendriers
+      if (available.length > 0) {
+        fetchRoomBookings(available.map((r) => r.id));
+      }
     } catch (err: any) {
       console.error('Error searching available rooms:', err);
       setAvailableRooms([]);
     } finally {
       setSearchLoading(false);
     }
+  };
+
+  // Charger les réservations de chaque chambre pour les mini-calendriers
+  const fetchRoomBookings = async (roomIds: string[]) => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    const newMap = new Map<string, BookingPeriod[]>();
+
+    await Promise.all(
+      roomIds.map(async (roomId) => {
+        try {
+          const response = await fetch(`${API_URL}/bookings/room/${roomId}/calendar`);
+          if (response.ok) {
+            const periods: BookingPeriod[] = await response.json();
+            newMap.set(roomId, periods);
+          }
+        } catch (err) {
+          console.error(`Error fetching bookings for room ${roomId}:`, err);
+        }
+      })
+    );
+
+    setRoomBookings(newMap);
+  };
+
+  // Vérifier si une date est réservée pour une chambre spécifique
+  const isRoomDateBooked = (roomId: string, date: Date): boolean => {
+    const periods = roomBookings.get(roomId) || [];
+    const dateStr = date.toISOString().split('T')[0];
+    return periods.some((p) => dateStr >= p.check_in && dateStr < p.check_out);
+  };
+
+  // Générer les jours du mini-calendrier (mois courant + mois suivant)
+  const generateMiniCalendarDays = (month: Date, roomId: string) => {
+    const year = month.getFullYear();
+    const monthIndex = month.getMonth();
+    const firstDay = new Date(year, monthIndex, 1);
+    const lastDay = new Date(year, monthIndex + 1, 0);
+    const startDayOfWeek = firstDay.getDay();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const days: { date: Date | null; isBooked: boolean; isPast: boolean }[] = [];
+
+    for (let i = 0; i < startDayOfWeek; i++) {
+      days.push({ date: null, isBooked: false, isPast: false });
+    }
+
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = new Date(year, monthIndex, day);
+      days.push({
+        date,
+        isBooked: isRoomDateBooked(roomId, date),
+        isPast: date < today,
+      });
+    }
+
+    return days;
   };
 
   const calculateNights = () => {
@@ -1041,6 +1107,59 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                                 +{room.amenities.length - 5} autres
                               </span>
                             )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mini-calendrier des réservations de cette chambre */}
+                      {roomBookings.has(room.id) && (
+                        <div className="mb-4">
+                          <p className="text-xs font-semibold text-gray-700 mb-2">Disponibilité :</p>
+                          {[0, 1].map((offset) => {
+                            const month = new Date();
+                            month.setMonth(month.getMonth() + offset);
+                            const days = generateMiniCalendarDays(month, room.id);
+                            const monthName = month.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+                            return (
+                              <div key={offset} className="mb-2">
+                                <p className="text-[10px] font-medium text-gray-500 mb-1 capitalize">{monthName}</p>
+                                <div className="grid grid-cols-7 gap-[2px]">
+                                  {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                                    <span key={i} className="text-[8px] text-gray-400 text-center">{d}</span>
+                                  ))}
+                                  {days.map((day, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={`w-5 h-5 flex items-center justify-center text-[9px] rounded-sm ${
+                                        !day.date
+                                          ? ''
+                                          : day.isPast
+                                            ? 'bg-gray-100 text-gray-300'
+                                            : day.isBooked
+                                              ? 'bg-red-100 text-red-600 font-semibold'
+                                              : 'bg-green-50 text-green-700'
+                                      }`}
+                                      title={
+                                        day.date
+                                          ? day.isPast
+                                            ? 'Passé'
+                                            : day.isBooked
+                                              ? 'Réservé'
+                                              : 'Disponible'
+                                          : ''
+                                      }
+                                    >
+                                      {day.date ? day.date.getDate() : ''}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div className="flex items-center gap-3 text-[9px] text-gray-500 mt-1">
+                            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-green-50 border border-green-200 rounded-sm inline-block"></span> Disponible</span>
+                            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-100 border border-red-200 rounded-sm inline-block"></span> Réservé</span>
+                            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-gray-100 border border-gray-200 rounded-sm inline-block"></span> Passé</span>
                           </div>
                         </div>
                       )}
