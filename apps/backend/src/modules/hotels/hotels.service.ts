@@ -259,8 +259,11 @@ export class HotelsService {
       }
     }
 
+    // Mapper star_rating -> stars pour Supabase
+    const { star_rating, ...restDto } = updateHotelDto;
     const updateData: any = {
-      ...updateHotelDto,
+      ...restDto,
+      ...(star_rating !== undefined && { stars: star_rating }),
     };
 
     if (slug) {

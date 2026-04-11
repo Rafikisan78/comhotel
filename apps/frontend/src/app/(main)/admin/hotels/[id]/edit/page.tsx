@@ -23,7 +23,7 @@ interface Hotel {
   check_in_time?: string;
   check_out_time?: string;
   reception_24h?: boolean;
-  stars: number;
+  star_rating: number;
   chain_name?: string;
   is_independent?: boolean;
   labels?: string[];
@@ -64,7 +64,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
     check_in_time: '14:00',
     check_out_time: '11:00',
     reception_24h: false,
-    stars: 3,
+    star_rating: 3,
     chain_name: '',
     is_independent: true,
     amenities: [],
@@ -164,7 +164,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
         check_in_time: formData.check_in_time || null,
         check_out_time: formData.check_out_time || null,
         reception_24h: formData.reception_24h || false,
-        stars: formData.stars,
+        star_rating: formData.star_rating,
         chain_name: formData.chain_name || null,
         is_independent: formData.is_independent ?? true,
         labels: formData.labels || [],
@@ -278,8 +278,8 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   Etoiles *
                 </label>
                 <select
-                  name="stars"
-                  value={formData.stars}
+                  name="star_rating"
+                  value={formData.star_rating}
                   onChange={handleChange}
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
