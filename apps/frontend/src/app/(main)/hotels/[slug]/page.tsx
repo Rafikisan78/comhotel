@@ -212,17 +212,22 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
           return;
         }
 
+        // Helper pour ajouter N jours à une date string YYYY-MM-DD
+        const addDays = (dateStr: string, days: number): string => {
+          const [y, m, d] = dateStr.split('-').map(Number);
+          const dt = new Date(y, m - 1, d + days);
+          return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        };
+
         // Construire une map date -> nb chambres réservées
         const dateMap = new Map<string, Set<string>>();
         for (const booking of (data.bookings || [])) {
-          const checkIn = new Date(booking.check_in);
-          const checkOut = new Date(booking.check_out);
-          const current = new Date(checkIn);
-          while (current < checkOut) {
-            const dateStr = current.toISOString().split('T')[0];
-            if (!dateMap.has(dateStr)) dateMap.set(dateStr, new Set());
-            dateMap.get(dateStr)!.add(booking.room_id);
-            current.setDate(current.getDate() + 1);
+          // Utiliser les strings directement pour éviter le décalage UTC
+          let currentStr = booking.check_in;
+          while (currentStr < booking.check_out) {
+            if (!dateMap.has(currentStr)) dateMap.set(currentStr, new Set());
+            dateMap.get(currentStr)!.add(booking.room_id);
+            currentStr = addDays(currentStr, 1);
           }
         }
 
@@ -239,21 +244,15 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
           let start = fullyBooked[0];
           let end = fullyBooked[0];
           for (let i = 1; i < fullyBooked.length; i++) {
-            const prev = new Date(end);
-            prev.setDate(prev.getDate() + 1);
-            if (fullyBooked[i] === prev.toISOString().split('T')[0]) {
+            if (fullyBooked[i] === addDays(end, 1)) {
               end = fullyBooked[i];
             } else {
-              const endDate = new Date(end);
-              endDate.setDate(endDate.getDate() + 1);
-              periods.push({ check_in: start, check_out: endDate.toISOString().split('T')[0] });
+              periods.push({ check_in: start, check_out: addDays(end, 1) });
               start = fullyBooked[i];
               end = fullyBooked[i];
             }
           }
-          const endDate = new Date(end);
-          endDate.setDate(endDate.getDate() + 1);
-          periods.push({ check_in: start, check_out: endDate.toISOString().split('T')[0] });
+          periods.push({ check_in: start, check_out: addDays(end, 1) });
         }
         setBookedDates(periods);
       }
@@ -289,15 +288,21 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     return '';
   };
 
+  // Formater une date locale en YYYY-MM-DD sans décalage UTC
+  const formatLocalDate = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   // Compter les chambres réservées pour une date donnée
   const getRoomsBookedCount = (date: Date): number => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(date);
     const bookedRoomIds = new Set<string>();
     for (const booking of calendarBookings) {
-      const checkIn = new Date(booking.check_in);
-      const checkOut = new Date(booking.check_out);
-      const current = new Date(dateStr);
-      if (current >= checkIn && current < checkOut) {
+      // Comparer les strings directement (YYYY-MM-DD) pour éviter le décalage UTC
+      if (dateStr >= booking.check_in && dateStr < booking.check_out) {
         bookedRoomIds.add(booking.room_id);
       }
     }
@@ -465,7 +470,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   // Vérifier si une date est réservée pour une chambre spécifique
   const isRoomDateBooked = (roomId: string, date: Date): boolean => {
     const periods = roomBookings.get(roomId) || [];
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(date);
     return periods.some((p) => dateStr >= p.check_in && dateStr < p.check_out);
   };
 
