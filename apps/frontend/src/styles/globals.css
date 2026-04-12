@@ -110,6 +110,31 @@ body {
   transition: background-color var(--transition-base), color var(--transition-base);
 }
 
+/* === FIX INPUTS CROSS-BROWSER (Edge, Firefox, Safari) === */
+/* Force la couleur de texte sur tous les contrôles de formulaire */
+input,
+select,
+textarea {
+  color: inherit;
+  color-scheme: light;
+}
+
+/* Fix spécifique : inputs avec fond blanc explicite doivent avoir du texte noir */
+input.bg-white,
+select.bg-white,
+textarea.bg-white {
+  color: #111827 !important; /* gray-900 */
+  -webkit-text-fill-color: #111827 !important;
+}
+
+/* Fix autofill Edge/Chrome : empêcher le fond jaune et le texte invisible */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111827;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* === FOCUS VISIBLE - WCAG 2.2 === */
 *:focus-visible {
   outline: 2px solid rgb(var(--color-primary));
