@@ -245,7 +245,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   value={formData.room_number}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -257,7 +257,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   value={formData.room_type}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {ROOM_TYPES.map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
@@ -276,7 +276,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   required
                   min="0"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -290,7 +290,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                 value={formData.description || ''}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -313,7 +313,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   required
                   min="1"
                   max="10"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -327,7 +327,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   onChange={handleChange}
                   min="0"
                   max="5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -341,7 +341,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   onChange={handleChange}
                   min="0"
                   max="2"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -363,7 +363,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   value={formData.surface_m2 || ''}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -376,7 +376,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   value={formData.floor || ''}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -387,7 +387,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
                   name="view_type"
                   value={formData.view_type || ''}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">-- Aucune --</option>
                   {VIEW_TYPES.map(view => (

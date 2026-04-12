@@ -249,7 +249,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   onChange={handleChange}
                   onBlur={generateSlug}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -282,7 +282,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   value={formData.star_rating}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {[1, 2, 3, 4, 5].map(n => (
                     <option key={n} value={n}>{n} etoile{n > 1 ? 's' : ''}</option>
@@ -299,7 +299,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   value={formData.chain_name || ''}
                   onChange={handleChange}
                   placeholder="Ex: Accor, Marriott..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -314,7 +314,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                 value={formData.short_description || ''}
                 onChange={handleChange}
                 maxLength={200}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -328,7 +328,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                 onChange={handleChange}
                 required
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -341,7 +341,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                 value={formData.description_en || ''}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -362,7 +362,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   value={formData.address}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -375,7 +375,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   value={formData.city}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -388,7 +388,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   value={formData.zip_code}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -401,7 +401,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   value={formData.country}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -422,7 +422,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   name="phone"
                   value={formData.phone || ''}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -434,7 +434,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   name="email"
                   value={formData.email || ''}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -446,7 +446,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   name="website"
                   value={formData.website || ''}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -467,7 +467,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   name="check_in_time"
                   value={formData.check_in_time || '14:00'}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -479,7 +479,7 @@ export default function EditHotelPage({ params }: { params: { id: string } }) {
                   name="check_out_time"
                   value={formData.check_out_time || '11:00'}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div className="flex items-center">

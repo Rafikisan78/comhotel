@@ -175,7 +175,7 @@ export default function NewHotelPage() {
                   onBlur={generateSlug}
                   required
                   placeholder="Ex: Hotel Le Parisien"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ export default function NewHotelPage() {
                   value={formData.star_rating}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {[1, 2, 3, 4, 5].map(n => (
                     <option key={n} value={n}>{n} etoile{n > 1 ? 's' : ''}</option>
@@ -226,7 +226,7 @@ export default function NewHotelPage() {
                   value={formData.chain_name}
                   onChange={handleChange}
                   placeholder="Ex: Accor, Marriott..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function NewHotelPage() {
                 onChange={handleChange}
                 maxLength={200}
                 placeholder="Une phrase de presentation"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -257,7 +257,7 @@ export default function NewHotelPage() {
                 required
                 rows={4}
                 placeholder="Description detaillee de l'hotel..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -271,7 +271,7 @@ export default function NewHotelPage() {
                 onChange={handleChange}
                 rows={3}
                 placeholder="English description..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function NewHotelPage() {
                   onChange={handleChange}
                   required
                   placeholder="123 rue de la Paix"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -307,7 +307,7 @@ export default function NewHotelPage() {
                   onChange={handleChange}
                   required
                   placeholder="Paris"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -321,7 +321,7 @@ export default function NewHotelPage() {
                   onChange={handleChange}
                   required
                   placeholder="75001"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -334,7 +334,7 @@ export default function NewHotelPage() {
                   value={formData.country}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -356,7 +356,7 @@ export default function NewHotelPage() {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="+33 1 23 45 67 89"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -369,7 +369,7 @@ export default function NewHotelPage() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="contact@hotel.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -382,7 +382,7 @@ export default function NewHotelPage() {
                   value={formData.website}
                   onChange={handleChange}
                   placeholder="https://www.hotel.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -403,7 +403,7 @@ export default function NewHotelPage() {
                   name="check_in_time"
                   value={formData.check_in_time}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div>
@@ -415,7 +415,7 @@ export default function NewHotelPage() {
                   name="check_out_time"
                   value={formData.check_out_time}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               <div className="flex items-center">

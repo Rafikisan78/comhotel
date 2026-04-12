@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
 import { getSupabase } from '@/lib/supabase';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 // Interface pour l'utilisateur connecté
 interface User {
@@ -133,6 +136,14 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   const [pendingBooking, setPendingBooking] = useState<any>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
+
+  // État Stripe
+  const [stripeReady, setStripeReady] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<'recap' | 'payment' | 'success'>('recap');
+  const [clientSecret, setClientSecret] = useState('');
+  const cardElementRef = useRef<HTMLDivElement>(null);
+  const stripeCardRef = useRef<any>(null);
+  const stripeInstanceRef = useRef<Stripe | null>(null);
 
   // Référence pour l'ID hôtel (utilisé dans le Realtime)
   const hotelIdRef = useRef<string | null>(null);
@@ -590,30 +601,93 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     }
   };
 
-  // Étape 2 : Confirmer la réservation
-  const handleConfirmBooking = async () => {
+  // Étape 2a : Initialiser le paiement Stripe
+  const handleProceedToPayment = async () => {
     if (!pendingBooking) return;
 
     setConfirmLoading(true);
     setBookingError('');
 
     try {
-      await apiClient.patch(`/bookings/${pendingBooking.id}/confirm`);
-      alert('Réservation confirmée avec succès !');
-      setPendingBooking(null);
-      setLockCountdown(0);
-      closeBookingModal();
-      router.push('/bookings/my-bookings');
+      // Créer le Payment Intent via l'API
+      const response = await apiClient.post('/payments/create-intent', {
+        bookingId: pendingBooking.id,
+      });
+
+      setClientSecret(response.data.clientSecret);
+      setPaymentStep('payment');
+
+      // Charger Stripe et monter le Card Element
+      const stripe = await stripePromise;
+      if (stripe && cardElementRef.current) {
+        stripeInstanceRef.current = stripe;
+        const elements = stripe.elements({ clientSecret: response.data.clientSecret });
+        const card = elements.create('payment');
+        card.mount(cardElementRef.current);
+        stripeCardRef.current = { elements, card };
+        setStripeReady(true);
+      }
+    } catch (err: any) {
+      console.error('Payment intent error:', err);
+      setBookingError(
+        err.response?.data?.message ||
+        'Erreur lors de l\'initialisation du paiement.'
+      );
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  // Étape 2b : Confirmer le paiement Stripe puis la réservation
+  const handleConfirmBooking = async () => {
+    if (!pendingBooking || !stripeInstanceRef.current || !stripeCardRef.current) return;
+
+    setConfirmLoading(true);
+    setBookingError('');
+
+    try {
+      // Confirmer le paiement Stripe
+      const { error: stripeError } = await stripeInstanceRef.current.confirmPayment({
+        elements: stripeCardRef.current.elements,
+        confirmParams: {
+          return_url: window.location.href, // Pas utilisé car redirect: 'if_required'
+        },
+        redirect: 'if_required',
+      });
+
+      if (stripeError) {
+        setBookingError(stripeError.message || 'Erreur de paiement');
+        setConfirmLoading(false);
+        return;
+      }
+
+      // Paiement réussi → confirmer la réservation côté backend
+      await apiClient.post('/payments/confirm', {
+        bookingId: pendingBooking.id,
+      });
+
+      setPaymentStep('success');
+
+      // Redirect après 2 secondes
+      setTimeout(() => {
+        setPendingBooking(null);
+        setLockCountdown(0);
+        setPaymentStep('recap');
+        setClientSecret('');
+        setStripeReady(false);
+        closeBookingModal();
+        router.push('/bookings/my-bookings');
+      }, 3000);
     } catch (err: any) {
       console.error('Confirm error:', err);
       setBookingError(
         err.response?.data?.message ||
         'Erreur lors de la confirmation. Veuillez réessayer.'
       );
-      // Si expiré, reset
       if (err.response?.data?.message?.includes('expiré')) {
         setPendingBooking(null);
         setLockCountdown(0);
+        setPaymentStep('recap');
       }
     } finally {
       setConfirmLoading(false);
@@ -911,7 +985,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                     }}
                     min={new Date().toISOString().split('T')[0]}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -927,7 +1001,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                     }}
                     min={searchCheckIn || new Date().toISOString().split('T')[0]}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -937,7 +1011,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                   <select
                     value={searchAdults}
                     onChange={(e) => setSearchAdults(parseInt(e.target.value))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {[1, 2, 3, 4, 5, 6].map((num) => (
                       <option key={num} value={num}>
@@ -1282,7 +1356,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                 </div>
               )}
 
-              {/* Étape 2 : Confirmation avec compte à rebours */}
+              {/* Étape 2 : Récapitulatif + Paiement Stripe */}
               {pendingBooking ? (
                 <div className="space-y-4">
                   {/* Compte à rebours */}
@@ -1293,64 +1367,120 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                     <p className={`text-3xl font-bold mt-1 ${lockCountdown > 60 ? 'text-orange-600' : 'text-red-600'}`}>
                       {Math.floor(lockCountdown / 60)}:{(lockCountdown % 60).toString().padStart(2, '0')}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Confirmez avant l'expiration du delai
-                    </p>
                   </div>
 
-                  {/* Récapitulatif */}
-                  <div className="bg-blue-50 p-4 rounded-md">
-                    <h3 className="font-semibold text-gray-900 mb-2">Recapitulatif</h3>
-                    <div className="text-sm space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Reference :</span>
-                        <span className="font-mono font-semibold">{pendingBooking.booking_reference}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Chambre :</span>
-                        <span>{formatRoomType(selectedRoom.room_type)} - N°{selectedRoom.room_number}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Arrivee :</span>
-                        <span>{new Date(pendingBooking.check_in).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Depart :</span>
-                        <span>{new Date(pendingBooking.check_out).toLocaleDateString('fr-FR')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Nuits :</span>
-                        <span>{pendingBooking.total_nights}</span>
-                      </div>
-                      <div className="border-t border-blue-200 pt-2 mt-2">
-                        <div className="flex justify-between">
-                          <span className="text-lg font-bold text-gray-900">Total :</span>
-                          <span className="text-lg font-bold text-blue-600">
-                            {Number(pendingBooking.total_price).toFixed(2)}€
-                          </span>
+                  {/* Succès */}
+                  {paymentStep === 'success' ? (
+                    <div className="text-center py-6">
+                      <div className="text-6xl mb-4">✅</div>
+                      <h3 className="text-2xl font-bold text-green-700 mb-2">Paiement confirmé !</h3>
+                      <p className="text-gray-600 mb-1">Réservation <span className="font-mono font-semibold">{pendingBooking.booking_reference}</span></p>
+                      <p className="text-sm text-gray-500">Redirection vers vos réservations...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Récapitulatif */}
+                      <div className="bg-blue-50 p-4 rounded-md">
+                        <h3 className="font-semibold text-gray-900 mb-2">Récapitulatif</h3>
+                        <div className="text-sm space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Référence :</span>
+                            <span className="font-mono font-semibold">{pendingBooking.booking_reference}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Hôtel :</span>
+                            <span>{hotel?.name}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Chambre :</span>
+                            <span>{formatRoomType(selectedRoom.room_type)} - N°{selectedRoom.room_number}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Arrivée :</span>
+                            <span>{new Date(pendingBooking.check_in + 'T12:00:00').toLocaleDateString('fr-FR')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Départ :</span>
+                            <span>{new Date(pendingBooking.check_out + 'T12:00:00').toLocaleDateString('fr-FR')}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Nuits :</span>
+                            <span>{pendingBooking.total_nights}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Voyageurs :</span>
+                            <span>{pendingBooking.adults} adulte{pendingBooking.adults > 1 ? 's' : ''}{pendingBooking.children > 0 ? `, ${pendingBooking.children} enfant${pendingBooking.children > 1 ? 's' : ''}` : ''}</span>
+                          </div>
+                          {pendingBooking.special_requests && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Demandes :</span>
+                              <span className="text-right max-w-[200px]">{pendingBooking.special_requests}</span>
+                            </div>
+                          )}
+                          <div className="border-t border-blue-200 pt-2 mt-2 space-y-1">
+                            <div className="flex justify-between text-gray-600">
+                              <span>Sous-total :</span>
+                              <span>{Number(pendingBooking.room_price_per_night * pendingBooking.total_nights).toFixed(2)}€</span>
+                            </div>
+                            <div className="flex justify-between text-gray-600">
+                              <span>Taxes (10%) :</span>
+                              <span>{Number(pendingBooking.taxes_total).toFixed(2)}€</span>
+                            </div>
+                            <div className="flex justify-between pt-1">
+                              <span className="text-lg font-bold text-gray-900">Total :</span>
+                              <span className="text-lg font-bold text-blue-600">
+                                {Number(pendingBooking.total_price).toFixed(2)}€
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Boutons */}
-                  <div className="flex gap-4 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => { setPendingBooking(null); setLockCountdown(0); closeBookingModal(); }}
-                      className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleConfirmBooking}
-                      disabled={confirmLoading || lockCountdown === 0}
-                      className="flex-1 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {confirmLoading ? 'Confirmation...' : 'Confirmer et payer'}
-                    </button>
-                  </div>
+                      {/* Formulaire de paiement Stripe */}
+                      {paymentStep === 'payment' && (
+                        <div className="border border-gray-200 rounded-md p-4">
+                          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <span>💳</span> Paiement sécurisé
+                          </h3>
+                          <div ref={cardElementRef} className="min-h-[40px]" />
+                          <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                            <span>🔒</span> Paiement sécurisé par Stripe — Mode test
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Boutons */}
+                      <div className="flex gap-4 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => { setPendingBooking(null); setLockCountdown(0); setPaymentStep('recap'); setClientSecret(''); setStripeReady(false); closeBookingModal(); }}
+                          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium"
+                        >
+                          Annuler
+                        </button>
+
+                        {paymentStep === 'recap' ? (
+                          <button
+                            type="button"
+                            onClick={handleProceedToPayment}
+                            disabled={confirmLoading || lockCountdown === 0}
+                            className="flex-1 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          >
+                            {confirmLoading ? 'Chargement...' : 'Procéder au paiement'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleConfirmBooking}
+                            disabled={confirmLoading || lockCountdown === 0 || !stripeReady}
+                            className="flex-1 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          >
+                            {confirmLoading ? 'Paiement en cours...' : `Payer ${Number(pendingBooking.total_price).toFixed(2)}€`}
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
               /* Étape 1 : Formulaire de réservation */
@@ -1368,7 +1498,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                         onChange={(e) => setCheckInDate(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -1381,7 +1511,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                         onChange={(e) => setCheckOutDate(e.target.value)}
                         min={checkInDate}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -1399,7 +1529,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                         min="1"
                         max={selectedRoom.capacity_adults}
                         required
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -1412,7 +1542,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                         onChange={(e) => setChildren(parseInt(e.target.value))}
                         min="0"
                         max={selectedRoom.capacity_children || 0}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -1425,7 +1555,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                         onChange={(e) => setInfants(parseInt(e.target.value))}
                         min="0"
                         max={selectedRoom.capacity_infants || 0}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -1440,7 +1570,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                       onChange={(e) => setSpecialRequests(e.target.value)}
                       rows={3}
                       placeholder="Ex: Lit bébé, chambre au calme, arrivée tardive..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
 
