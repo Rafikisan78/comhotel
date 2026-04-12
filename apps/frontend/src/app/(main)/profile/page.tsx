@@ -183,7 +183,7 @@ export default function ProfilePage() {
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   required
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-900 focus:border-blue-500 focus:outline-none"
                 />
               </div>
 
@@ -198,7 +198,7 @@ export default function ProfilePage() {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   required
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-900 focus:border-blue-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -214,7 +214,7 @@ export default function ProfilePage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-900 focus:border-blue-500 focus:outline-none"
               />
             </div>
 
@@ -228,7 +228,7 @@ export default function ProfilePage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-900 focus:border-blue-500 focus:outline-none"
               />
             </div>
 
@@ -250,7 +250,7 @@ export default function ProfilePage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Laisser vide pour ne pas changer"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-900 focus:border-blue-500 focus:outline-none"
                   />
                   {password && password.length < 8 && (
                     <p className="mt-1 text-xs text-red-600">Minimum 8 caractères requis</p>
@@ -269,7 +269,7 @@ export default function ProfilePage() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirmer le nouveau mot de passe"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-900 focus:border-blue-500 focus:outline-none"
                     />
                     {confirmPassword && password !== confirmPassword && (
                       <p className="mt-1 text-xs text-red-600">Les mots de passe ne correspondent pas</p>
