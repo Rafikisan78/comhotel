@@ -110,24 +110,24 @@ body {
   transition: background-color var(--transition-base), color var(--transition-base);
 }
 
-/* === FIX INPUTS CROSS-BROWSER (Edge, Firefox, Safari) === */
-/* Force le thème clair et la couleur de texte sur tous les contrôles de formulaire.
-   Nécessaire car Edge en dark mode OS applique ses propres styles sur les inputs,
-   rendant le texte blanc/invisible sur fond blanc. */
+/* === STYLE INPUTS GLOBAL (cross-browser : Edge, Firefox, Safari, Chrome) === */
+/* Fond bleu clair + texte noir sur tous les champs de formulaire.
+   Garantit la lisibilité quel que soit le thème OS (clair ou sombre). */
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
+  background-color: #eff6ff !important; /* blue-50 */
   color: #111827 !important; /* gray-900 */
   -webkit-text-fill-color: #111827 !important;
   color-scheme: light;
 }
 
-/* Fix autofill Edge/Chrome : empêcher le fond jaune et le texte invisible */
+/* Fix autofill Edge/Chrome : garder le fond bleu clair et le texte noir */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #eff6ff inset !important;
   -webkit-text-fill-color: #111827 !important;
-  transition: background-color 5000s ease-in-out 0s;
 }
 
 /* === FOCUS VISIBLE - WCAG 2.2 === */
