@@ -41,6 +41,7 @@ export interface Booking {
   customer_notes?: string;
   internal_notes?: string;
   payment_id?: string;
+  payment_method?: "stripe" | "on_site" | null;
   created_at: string;
   updated_at: string;
 }

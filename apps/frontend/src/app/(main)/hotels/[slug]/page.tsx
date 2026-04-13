@@ -4,9 +4,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
 import { getSupabase } from '@/lib/supabase';
-import { loadStripe, Stripe } from '@stripe/stripe-js';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+import PaymentMethodChoice from '@/components/payment/PaymentMethodChoice';
+import StripePaymentForm from '@/components/payment/StripePaymentForm';
 
 // Interface pour l'utilisateur connecté
 interface User {
@@ -137,13 +136,9 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [lockCountdown, setLockCountdown] = useState(0);
 
-  // État Stripe
-  const [stripeReady, setStripeReady] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<'recap' | 'payment' | 'success'>('recap');
+  // État paiement
+  const [paymentStep, setPaymentStep] = useState<'choice' | 'payment' | 'success'>('choice');
   const [clientSecret, setClientSecret] = useState('');
-  const cardElementRef = useRef<HTMLDivElement>(null);
-  const stripeCardRef = useRef<any>(null);
-  const stripeInstanceRef = useRef<Stripe | null>(null);
 
   // Référence pour l'ID hôtel (utilisé dans le Realtime)
   const hotelIdRef = useRef<string | null>(null);
@@ -601,32 +596,20 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     }
   };
 
-  // Étape 2a : Initialiser le paiement Stripe
-  const handleProceedToPayment = async () => {
+  // Étape 2a : Choisir paiement en ligne → initialiser Stripe
+  const handleChooseStripe = async () => {
     if (!pendingBooking) return;
 
     setConfirmLoading(true);
     setBookingError('');
 
     try {
-      // Créer le Payment Intent via l'API
       const response = await apiClient.post('/payments/create-intent', {
         bookingId: pendingBooking.id,
       });
 
       setClientSecret(response.data.clientSecret);
       setPaymentStep('payment');
-
-      // Charger Stripe et monter le Card Element
-      const stripe = await stripePromise;
-      if (stripe && cardElementRef.current) {
-        stripeInstanceRef.current = stripe;
-        const elements = stripe.elements({ clientSecret: response.data.clientSecret });
-        const card = elements.create('payment');
-        card.mount(cardElementRef.current);
-        stripeCardRef.current = { elements, card };
-        setStripeReady(true);
-      }
     } catch (err: any) {
       console.error('Payment intent error:', err);
       setBookingError(
@@ -638,43 +621,60 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
     }
   };
 
-  // Étape 2b : Confirmer le paiement Stripe puis la réservation
-  const handleConfirmBooking = async () => {
-    if (!pendingBooking || !stripeInstanceRef.current || !stripeCardRef.current) return;
+  // Étape 2b : Choisir paiement sur place → confirmer directement
+  const handleChooseOnSite = async () => {
+    if (!pendingBooking) return;
 
     setConfirmLoading(true);
     setBookingError('');
 
     try {
-      // Confirmer le paiement Stripe
-      const { error: stripeError } = await stripeInstanceRef.current.confirmPayment({
-        elements: stripeCardRef.current.elements,
-        confirmParams: {
-          return_url: window.location.href, // Pas utilisé car redirect: 'if_required'
-        },
-        redirect: 'if_required',
+      await apiClient.post('/payments/confirm-onsite', {
+        bookingId: pendingBooking.id,
       });
 
-      if (stripeError) {
-        setBookingError(stripeError.message || 'Erreur de paiement');
-        setConfirmLoading(false);
-        return;
-      }
+      setPaymentStep('success');
 
-      // Paiement réussi → confirmer la réservation côté backend
+      setTimeout(() => {
+        setPendingBooking(null);
+        setLockCountdown(0);
+        setPaymentStep('choice');
+        setClientSecret('');
+        closeBookingModal();
+        router.push('/bookings/my-bookings');
+      }, 3000);
+    } catch (err: any) {
+      console.error('Onsite confirm error:', err);
+      setBookingError(
+        err.response?.data?.message ||
+        'Erreur lors de la confirmation. Veuillez réessayer.'
+      );
+      if (err.response?.data?.message?.includes('expiré')) {
+        setPendingBooking(null);
+        setLockCountdown(0);
+        setPaymentStep('choice');
+      }
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  // Callback quand le paiement Stripe réussit
+  const handleStripeSuccess = async () => {
+    if (!pendingBooking) return;
+
+    try {
       await apiClient.post('/payments/confirm', {
         bookingId: pendingBooking.id,
       });
 
       setPaymentStep('success');
 
-      // Redirect après 2 secondes
       setTimeout(() => {
         setPendingBooking(null);
         setLockCountdown(0);
-        setPaymentStep('recap');
+        setPaymentStep('choice');
         setClientSecret('');
-        setStripeReady(false);
         closeBookingModal();
         router.push('/bookings/my-bookings');
       }, 3000);
@@ -684,14 +684,12 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
         err.response?.data?.message ||
         'Erreur lors de la confirmation. Veuillez réessayer.'
       );
-      if (err.response?.data?.message?.includes('expiré')) {
-        setPendingBooking(null);
-        setLockCountdown(0);
-        setPaymentStep('recap');
-      }
-    } finally {
-      setConfirmLoading(false);
     }
+  };
+
+  // Callback quand le paiement Stripe échoue
+  const handleStripeError = (message: string) => {
+    setBookingError(message);
   };
 
   // Compte à rebours
@@ -1436,48 +1434,45 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                         </div>
                       </div>
 
-                      {/* Formulaire de paiement Stripe */}
-                      {paymentStep === 'payment' && (
-                        <div className="border border-gray-200 rounded-md p-4">
-                          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                            <span>💳</span> Paiement sécurisé
-                          </h3>
-                          <div ref={cardElementRef} className="min-h-[40px]" />
-                          <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                            <span>🔒</span> Paiement sécurisé par Stripe — Mode test
-                          </p>
-                        </div>
+                      {/* Choix du mode de paiement ou formulaire Stripe */}
+                      {paymentStep === 'choice' && (
+                        <PaymentMethodChoice
+                          onChooseStripe={handleChooseStripe}
+                          onChooseOnSite={handleChooseOnSite}
+                          loading={confirmLoading}
+                          disabled={lockCountdown === 0}
+                        />
                       )}
 
-                      {/* Boutons */}
-                      <div className="flex gap-4 pt-4">
+                      {paymentStep === 'payment' && clientSecret && (
+                        <StripePaymentForm
+                          clientSecret={clientSecret}
+                          amount={Number(pendingBooking.total_price)}
+                          onSuccess={handleStripeSuccess}
+                          onError={handleStripeError}
+                        />
+                      )}
+
+                      {/* Bouton annuler / retour */}
+                      <div className="pt-2">
                         <button
                           type="button"
-                          onClick={() => { setPendingBooking(null); setLockCountdown(0); setPaymentStep('recap'); setClientSecret(''); setStripeReady(false); closeBookingModal(); }}
-                          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-blue-50 transition font-medium"
+                          onClick={() => {
+                            if (paymentStep === 'payment') {
+                              setPaymentStep('choice');
+                              setClientSecret('');
+                            } else {
+                              setPendingBooking(null);
+                              setLockCountdown(0);
+                              setPaymentStep('choice');
+                              setClientSecret('');
+                              closeBookingModal();
+                            }
+                          }}
+                          className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-blue-50 transition text-sm"
                         >
-                          Annuler
+                          {paymentStep === 'payment' ? '← Retour au choix de paiement' : 'Annuler la réservation'}
                         </button>
-
-                        {paymentStep === 'recap' ? (
-                          <button
-                            type="button"
-                            onClick={handleProceedToPayment}
-                            disabled={confirmLoading || lockCountdown === 0}
-                            className="flex-1 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                          >
-                            {confirmLoading ? 'Chargement...' : 'Procéder au paiement'}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleConfirmBooking}
-                            disabled={confirmLoading || lockCountdown === 0 || !stripeReady}
-                            className="flex-1 px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                          >
-                            {confirmLoading ? 'Paiement en cours...' : `Payer ${Number(pendingBooking.total_price).toFixed(2)}€`}
-                          </button>
-                        )}
                       </div>
                     </>
                   )}
