@@ -759,7 +759,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
 
   if (error || !hotel) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-blue-50">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">❌</h1>
           <p className="text-xl text-gray-700 mb-6">{error || 'Hôtel non trouvé'}</p>
@@ -775,7 +775,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-blue-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Barre de navigation avec bouton retour et utilisateur connecté */}
         <div className="flex justify-between items-center mb-6">
@@ -1454,7 +1454,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                         <button
                           type="button"
                           onClick={() => { setPendingBooking(null); setLockCountdown(0); setPaymentStep('recap'); setClientSecret(''); setStripeReady(false); closeBookingModal(); }}
-                          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium"
+                          className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-blue-50 transition font-medium"
                         >
                           Annuler
                         </button>
@@ -1613,7 +1613,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
                     <button
                       type="button"
                       onClick={closeBookingModal}
-                      className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition font-medium"
+                      className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-blue-50 transition font-medium"
                     >
                       Annuler
                     </button>

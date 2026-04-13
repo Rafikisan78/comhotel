@@ -242,7 +242,7 @@ Comment puis-je vous aider ?`,
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-blue-50">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -267,7 +267,7 @@ Comment puis-je vous aider ?`,
                     <div
                       key={hotel.id}
                       onClick={() => handleHotelClick(hotel)}
-                      className="bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 transition-colors border"
+                      className="bg-blue-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 transition-colors border"
                     >
                       <div className="flex items-start gap-3">
                         {hotel.cover_image ? (

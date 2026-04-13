@@ -21,9 +21,9 @@
   --color-info: 59, 130, 246;
 
   /* Couleurs de fond */
-  --color-bg-primary: 255, 255, 255;
-  --color-bg-secondary: 249, 250, 251;
-  --color-bg-tertiary: 243, 244, 246;
+  --color-bg-primary: 239, 246, 255; /* blue-50 #eff6ff */
+  --color-bg-secondary: 219, 234, 254; /* blue-100 #dbeafe */
+  --color-bg-tertiary: 191, 219, 254; /* blue-200 #bfdbfe */
 
   /* Couleurs de texte */
   --color-text-primary: 17, 24, 39;

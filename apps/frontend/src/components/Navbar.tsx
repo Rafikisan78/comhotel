@@ -43,7 +43,7 @@ export default function Navbar() {
     `px-3 py-2 rounded-md font-medium transition-colors touch-target ${
       isActive(path)
         ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
-        : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+        : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800'
     }`;
 
   return (

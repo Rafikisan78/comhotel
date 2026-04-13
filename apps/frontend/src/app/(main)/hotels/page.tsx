@@ -61,7 +61,7 @@ export default function HotelsPage() {
   // Skeleton pendant le chargement
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 transition-colors">
+      <div className="min-h-screen bg-blue-50 dark:bg-gray-900 py-8 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb */}
           <Breadcrumb
@@ -90,7 +90,7 @@ export default function HotelsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 transition-colors">
+    <div className="min-h-screen bg-blue-50 dark:bg-gray-900 py-8 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb - Guidage */}
         <Breadcrumb

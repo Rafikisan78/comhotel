@@ -197,7 +197,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-blue-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -474,7 +474,7 @@ export default function EditRoomPage({ params }: { params: { id: string; roomId:
             <button
               type="button"
               onClick={() => router.push(`/admin/hotels/${params.id}/rooms`)}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-blue-50 transition-colors"
             >
               Annuler
             </button>

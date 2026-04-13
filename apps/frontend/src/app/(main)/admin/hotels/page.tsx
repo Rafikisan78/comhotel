@@ -172,7 +172,7 @@ export default function AdminHotelsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-blue-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -222,7 +222,7 @@ export default function AdminHotelsPage() {
                       notifications.map((notif, i) => (
                         <div
                           key={`${notif.id}-${i}`}
-                          className={`p-3 border-b border-gray-100 hover:bg-gray-50 ${
+                          className={`p-3 border-b border-gray-100 hover:bg-blue-50 ${
                             notif.status === 'confirmed'
                               ? 'border-l-4 border-l-green-500'
                               : notif.status === 'cancelled'
@@ -334,7 +334,7 @@ export default function AdminHotelsPage() {
         {/* Table des hôtels */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-blue-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Hôtel
@@ -365,7 +365,7 @@ export default function AdminHotelsPage() {
                 </tr>
               ) : (
                 filteredHotels.map((hotel) => (
-                  <tr key={hotel.id} className="hover:bg-gray-50">
+                  <tr key={hotel.id} className="hover:bg-blue-50">
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">

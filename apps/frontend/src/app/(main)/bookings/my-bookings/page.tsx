@@ -179,7 +179,7 @@ export default function MyBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-blue-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Mes Réservations</h1>
 
@@ -307,7 +307,7 @@ export default function MyBookingsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 rounded-md">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-blue-50 rounded-md">
                     <div>
                       <p className="text-xs text-gray-600 mb-1">Chambre</p>
                       <p className="font-semibold text-gray-900">
@@ -377,7 +377,7 @@ export default function MyBookingsPage() {
                       {booking.hotel.phone && (
                         <a
                           href={`tel:${booking.hotel.phone}`}
-                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition"
+                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-blue-50 transition"
                         >
                           📞 Contacter
                         </a>
