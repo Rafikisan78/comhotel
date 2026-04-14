@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '@/lib/api-client';
+import PaymentMethodChoice from '@/components/payment/PaymentMethodChoice';
+import StripePaymentForm from '@/components/payment/StripePaymentForm';
 
 interface Booking {
   id: string;
@@ -61,6 +63,10 @@ export default function MyBookingsPage() {
     late_checkout: false,
   });
   const [editLoading, setEditLoading] = useState(false);
+  const [payingBooking, setPayingBooking] = useState<Booking | null>(null);
+  const [paymentStep, setPaymentStep] = useState<'choice' | 'stripe'>('choice');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -239,6 +245,60 @@ export default function MyBookingsPage() {
       alert(err.response?.data?.message || 'Erreur lors de la modification');
     } finally {
       setEditLoading(false);
+    }
+  };
+
+  const openPaymentModal = (booking: Booking) => {
+    setPayingBooking(booking);
+    setPaymentStep('choice');
+    setClientSecret(null);
+    setPaymentLoading(false);
+  };
+
+  const handleChooseStripe = async () => {
+    if (!payingBooking) return;
+    try {
+      setPaymentLoading(true);
+      const res = await apiClient.post('/payments/create-intent', {
+        bookingId: payingBooking.id,
+      });
+      setClientSecret(res.data.clientSecret);
+      setPaymentStep('stripe');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erreur lors de la creation du paiement');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleStripeSuccess = async () => {
+    if (!payingBooking) return;
+    try {
+      await apiClient.post('/payments/confirm', {
+        bookingId: payingBooking.id,
+      });
+      alert('Paiement effectue avec succes ! Votre reservation est confirmee.');
+      setPayingBooking(null);
+      fetchBookings();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erreur lors de la confirmation');
+    }
+  };
+
+  const handleChooseOnSite = async () => {
+    if (!payingBooking) return;
+    try {
+      setPaymentLoading(true);
+      await apiClient.post('/payments/confirm-onsite', {
+        bookingId: payingBooking.id,
+      });
+      alert('Reservation confirmee ! Vous paierez sur place a votre arrivee.');
+      setPayingBooking(null);
+      fetchBookings();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erreur lors de la confirmation');
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -463,7 +523,7 @@ export default function MyBookingsPage() {
                       </p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
                       {booking.hotel.phone && (
                         <a
                           href={`tel:${booking.hotel.phone}`}
@@ -471,6 +531,14 @@ export default function MyBookingsPage() {
                         >
                           Contacter
                         </a>
+                      )}
+                      {booking.status === 'pending_payment' && (
+                        <button
+                          onClick={() => openPaymentModal(booking)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+                        >
+                          Valider le paiement
+                        </button>
                       )}
                       {canModifyBooking(booking) && (
                         <button
@@ -497,6 +565,64 @@ export default function MyBookingsPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de paiement */}
+      {payingBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                Valider le paiement
+              </h2>
+              <button
+                onClick={() => setPayingBooking(null)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-blue-50 rounded-md">
+              <p className="text-sm text-gray-700">
+                <span className="font-semibold">{payingBooking.hotel.name}</span>
+                {' '} — Chambre {payingBooking.room.room_number}
+              </p>
+              <p className="text-sm text-gray-600">
+                {formatDate(payingBooking.check_in)} au {formatDate(payingBooking.check_out)}
+                {' '}({payingBooking.total_nights} nuit{payingBooking.total_nights > 1 ? 's' : ''})
+              </p>
+              <p className="text-lg font-bold text-blue-600 mt-1">
+                {payingBooking.total_price.toFixed(2)}&euro;
+              </p>
+            </div>
+
+            {paymentStep === 'choice' && (
+              <PaymentMethodChoice
+                onChooseStripe={handleChooseStripe}
+                onChooseOnSite={handleChooseOnSite}
+                loading={paymentLoading}
+                disabled={false}
+              />
+            )}
+
+            {paymentStep === 'stripe' && clientSecret && (
+              <StripePaymentForm
+                clientSecret={clientSecret}
+                amount={payingBooking.total_price}
+                onSuccess={handleStripeSuccess}
+                onError={(msg) => alert(msg)}
+              />
+            )}
+
+            {paymentStep === 'stripe' && !clientSecret && (
+              <div className="text-center py-4">
+                <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+                <p className="text-sm text-gray-500 mt-2">Initialisation du paiement...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal de modification */}
       {editingBooking && (
