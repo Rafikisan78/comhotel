@@ -35,9 +35,17 @@ export class PaymentsService {
       );
     }
 
+    // Stripe exige un montant minimum de 0.50€
+    const amount = Number(booking.total_price);
+    if (amount < 0.5) {
+      throw new BadRequestException(
+        "Le montant minimum pour un paiement en ligne est de 0,50€. Veuillez choisir le paiement sur place.",
+      );
+    }
+
     // Créer le Payment Intent Stripe
     const paymentIntent = await this.stripeService.createPaymentIntent(
-      Number(booking.total_price),
+      amount,
       "eur",
       {
         booking_id: booking.id,
