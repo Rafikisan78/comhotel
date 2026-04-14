@@ -11,6 +11,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from "@nestjs/common";
 import { HotelsService } from "./hotels.service";
 import { CreateHotelDto } from "./dto/create-hotel.dto";
@@ -101,7 +102,7 @@ export class HotelsController {
   async findBySlug(@Param("slug") slug: string) {
     const hotel = await this.hotelsService.findBySlug(slug);
     if (!hotel) {
-      return { error: "Hôtel introuvable" };
+      throw new NotFoundException("Hôtel introuvable");
     }
     return hotel;
   }
@@ -113,7 +114,7 @@ export class HotelsController {
   async findOne(@Param("id") id: string) {
     const hotel = await this.hotelsService.findOne(id);
     if (!hotel) {
-      return { error: "Hôtel introuvable" };
+      throw new NotFoundException("Hôtel introuvable");
     }
     return hotel;
   }

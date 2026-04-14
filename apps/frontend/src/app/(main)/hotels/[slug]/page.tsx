@@ -377,6 +377,10 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
       }
 
       const hotelData = await hotelResponse.json();
+      if (!hotelData.id) {
+        setError('Hôtel non trouvé');
+        return;
+      }
       setHotel(hotelData);
       hotelIdRef.current = hotelData.id;
 
