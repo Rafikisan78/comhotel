@@ -430,6 +430,12 @@ export default function AdminHotelsPage() {
                       >
                         Chambres
                       </button>
+                      <button
+                        onClick={() => router.push(`/admin/hotels/${hotel.id}/bookings`)}
+                        className="text-purple-600 hover:text-purple-900"
+                      >
+                        Reservations
+                      </button>
                       {hotel.is_active && (
                         <button
                           onClick={() => deleteHotel(hotel.id, hotel.name)}

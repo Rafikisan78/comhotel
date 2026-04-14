@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
 import { StripeService } from "./stripe/stripe.service";
 import { SupabaseService } from "../../common/database/supabase.service";
 
@@ -172,5 +177,168 @@ export class PaymentsService {
     }
 
     return confirmed;
+  }
+
+  /**
+   * Capturer un paiement Stripe autorisé (capture différée).
+   * Réservé au hotel_owner de l'hôtel ou admin.
+   */
+  async capturePayment(
+    bookingId: string,
+    userId: string,
+    userRole: string,
+  ) {
+    const supabase = this.supabaseService.getClient();
+
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .select(
+        "id, status, payment_id, payment_method, hotel_id, booking_reference",
+      )
+      .eq("id", bookingId)
+      .single();
+
+    if (error || !booking) {
+      throw new NotFoundException("Réservation non trouvée");
+    }
+
+    // Vérifier les droits : admin ou hotel_owner de cet hôtel
+    if (userRole !== "admin") {
+      const { data: hotel } = await supabase
+        .from("hotels")
+        .select("owner_id")
+        .eq("id", booking.hotel_id)
+        .single();
+
+      if (!hotel || hotel.owner_id !== userId) {
+        throw new ForbiddenException(
+          "Vous n'êtes pas le propriétaire de cet hôtel",
+        );
+      }
+    }
+
+    if (booking.status !== "confirmed") {
+      throw new BadRequestException(
+        "Seules les réservations confirmées peuvent être capturées",
+      );
+    }
+
+    if (booking.payment_method !== "stripe" || !booking.payment_id) {
+      throw new BadRequestException(
+        "Cette réservation n'a pas de paiement Stripe à capturer",
+      );
+    }
+
+    try {
+      const captured = await this.stripeService.capturePaymentIntent(
+        booking.payment_id,
+      );
+
+      if (captured.status !== "succeeded") {
+        throw new BadRequestException(
+          "La capture du paiement a échoué (statut: " + captured.status + ")",
+        );
+      }
+
+      // Mettre à jour le statut de la réservation
+      const { data: updatedBooking, error: updateError } = await supabase
+        .from("bookings")
+        .update({
+          status: "checked_in",
+          checked_in_at: new Date().toISOString(),
+        })
+        .eq("id", bookingId)
+        .select()
+        .single();
+
+      if (updateError) {
+        throw new BadRequestException("Erreur lors de la mise à jour");
+      }
+
+      return updatedBooking;
+    } catch (err) {
+      if (
+        err instanceof BadRequestException ||
+        err instanceof ForbiddenException
+      ) {
+        throw err;
+      }
+      console.error("Stripe capture error:", err);
+      throw new BadRequestException(
+        "Erreur lors de la capture du paiement Stripe",
+      );
+    }
+  }
+
+  /**
+   * Annuler un paiement Stripe autorisé (libérer l'autorisation).
+   * Réservé au hotel_owner de l'hôtel ou admin.
+   */
+  async cancelAuthorizedPayment(
+    bookingId: string,
+    userId: string,
+    userRole: string,
+  ) {
+    const supabase = this.supabaseService.getClient();
+
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .select(
+        "id, status, payment_id, payment_method, hotel_id, booking_reference",
+      )
+      .eq("id", bookingId)
+      .single();
+
+    if (error || !booking) {
+      throw new NotFoundException("Réservation non trouvée");
+    }
+
+    // Vérifier les droits : admin ou hotel_owner de cet hôtel
+    if (userRole !== "admin") {
+      const { data: hotel } = await supabase
+        .from("hotels")
+        .select("owner_id")
+        .eq("id", booking.hotel_id)
+        .single();
+
+      if (!hotel || hotel.owner_id !== userId) {
+        throw new ForbiddenException(
+          "Vous n'êtes pas le propriétaire de cet hôtel",
+        );
+      }
+    }
+
+    if (booking.status !== "confirmed") {
+      throw new BadRequestException(
+        "Seules les réservations confirmées peuvent être annulées",
+      );
+    }
+
+    // Si paiement Stripe, annuler l'autorisation
+    if (booking.payment_method === "stripe" && booking.payment_id) {
+      try {
+        await this.stripeService.cancelPaymentIntent(booking.payment_id);
+      } catch (err) {
+        console.error("Stripe cancel error:", err);
+        // On continue quand même pour annuler la réservation
+      }
+    }
+
+    const { data: cancelledBooking, error: updateError } = await supabase
+      .from("bookings")
+      .update({
+        status: "cancelled",
+        cancellation_reason: "Annulation par le gestionnaire de l'hôtel",
+        cancelled_at: new Date().toISOString(),
+      })
+      .eq("id", bookingId)
+      .select()
+      .single();
+
+    if (updateError) {
+      throw new BadRequestException("Erreur lors de l'annulation");
+    }
+
+    return cancelledBooking;
   }
 }

@@ -20,6 +20,9 @@ interface Booking {
   status: string;
   booking_reference: string;
   special_requests?: string;
+  arrival_time?: string;
+  early_checkin?: boolean;
+  late_checkout?: boolean;
   created_at: string;
   cancelled_at?: string;
   cancellation_reason?: string;
@@ -45,6 +48,19 @@ export default function MyBookingsPage() {
   const [error, setError] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editForm, setEditForm] = useState({
+    check_in: '',
+    check_out: '',
+    adults: 1,
+    children: 0,
+    infants: 0,
+    special_requests: '',
+    arrival_time: '',
+    early_checkin: false,
+    late_checkout: false,
+  });
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -150,6 +166,80 @@ export default function MyBookingsPage() {
     const hoursUntilCheckIn = (checkInDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     return hoursUntilCheckIn >= 24;
+  };
+
+  const canModifyBooking = (booking: Booking) => {
+    if (!['pending_payment', 'confirmed'].includes(booking.status)) return false;
+    const checkInDate = new Date(booking.check_in);
+    const now = new Date();
+    const hoursUntilCheckIn = (checkInDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    return hoursUntilCheckIn >= 24;
+  };
+
+  const openEditModal = (booking: Booking) => {
+    setEditingBooking(booking);
+    setEditForm({
+      check_in: booking.check_in.split('T')[0],
+      check_out: booking.check_out.split('T')[0],
+      adults: booking.adults,
+      children: booking.children || 0,
+      infants: booking.infants || 0,
+      special_requests: booking.special_requests || '',
+      arrival_time: booking.arrival_time || '',
+      early_checkin: booking.early_checkin || false,
+      late_checkout: booking.late_checkout || false,
+    });
+  };
+
+  const handleEditBooking = async () => {
+    if (!editingBooking) return;
+
+    try {
+      setEditLoading(true);
+      const payload: Record<string, any> = {};
+
+      if (editForm.check_in !== editingBooking.check_in.split('T')[0]) {
+        payload.check_in = editForm.check_in;
+      }
+      if (editForm.check_out !== editingBooking.check_out.split('T')[0]) {
+        payload.check_out = editForm.check_out;
+      }
+      if (editForm.adults !== editingBooking.adults) {
+        payload.adults = editForm.adults;
+      }
+      if (editForm.children !== (editingBooking.children || 0)) {
+        payload.children = editForm.children;
+      }
+      if (editForm.infants !== (editingBooking.infants || 0)) {
+        payload.infants = editForm.infants;
+      }
+      if (editForm.special_requests !== (editingBooking.special_requests || '')) {
+        payload.special_requests = editForm.special_requests;
+      }
+      if (editForm.arrival_time !== (editingBooking.arrival_time || '')) {
+        payload.arrival_time = editForm.arrival_time;
+      }
+      if (editForm.early_checkin !== (editingBooking.early_checkin || false)) {
+        payload.early_checkin = editForm.early_checkin;
+      }
+      if (editForm.late_checkout !== (editingBooking.late_checkout || false)) {
+        payload.late_checkout = editForm.late_checkout;
+      }
+
+      if (Object.keys(payload).length === 0) {
+        alert('Aucune modification detectee');
+        return;
+      }
+
+      await apiClient.patch(`/bookings/${editingBooking.id}`, payload);
+      alert('Reservation modifiee avec succes');
+      setEditingBooking(null);
+      fetchBookings();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erreur lors de la modification');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const filteredBookings = bookings.filter((booking) => {
@@ -379,8 +469,16 @@ export default function MyBookingsPage() {
                           href={`tel:${booking.hotel.phone}`}
                           className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-blue-50 transition"
                         >
-                          📞 Contacter
+                          Contacter
                         </a>
+                      )}
+                      {canModifyBooking(booking) && (
+                        <button
+                          onClick={() => openEditModal(booking)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                        >
+                          Modifier
+                        </button>
                       )}
                       {canCancelBooking(booking) && (
                         <button
@@ -399,6 +497,160 @@ export default function MyBookingsPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de modification */}
+      {editingBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                Modifier la reservation
+              </h2>
+              <button
+                onClick={() => setEditingBooking(null)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-4">
+              Ref: {editingBooking.booking_reference} - {editingBooking.hotel.name}
+            </p>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Arrivee
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.check_in}
+                    onChange={(e) => setEditForm({ ...editForm, check_in: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Depart
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.check_out}
+                    onChange={(e) => setEditForm({ ...editForm, check_out: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Adultes
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={editForm.adults}
+                    onChange={(e) => setEditForm({ ...editForm, adults: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Enfants
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={editForm.children}
+                    onChange={(e) => setEditForm({ ...editForm, children: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bebes
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    value={editForm.infants}
+                    onChange={(e) => setEditForm({ ...editForm, infants: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Heure d'arrivee prevue
+                </label>
+                <input
+                  type="time"
+                  value={editForm.arrival_time}
+                  onChange={(e) => setEditForm({ ...editForm, arrival_time: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Demandes speciales
+                </label>
+                <textarea
+                  value={editForm.special_requests}
+                  onChange={(e) => setEditForm({ ...editForm, special_requests: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Lit supplementaire, allergies..."
+                />
+              </div>
+
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={editForm.early_checkin}
+                    onChange={(e) => setEditForm({ ...editForm, early_checkin: e.target.checked })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Early check-in
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={editForm.late_checkout}
+                    onChange={(e) => setEditForm({ ...editForm, late_checkout: e.target.checked })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Late check-out
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+              <button
+                onClick={() => setEditingBooking(null)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleEditBooking}
+                disabled={editLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:bg-gray-400"
+              >
+                {editLoading ? 'Modification...' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

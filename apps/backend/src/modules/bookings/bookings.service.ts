@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { SupabaseService } from "../../common/database/supabase.service";
 import { CreateBookingDto } from "./dto/create-booking.dto";
+import { UpdateBookingDto } from "./dto/update-booking.dto";
 import { Booking } from "./entities/booking.entity";
 
 @Injectable()
@@ -311,6 +312,194 @@ export class BookingsService {
   }
 
   /**
+   * Modifier une réservation existante (dates, voyageurs, options).
+   * Seules les réservations en statut pending_payment ou confirmed peuvent être modifiées.
+   * Si les dates changent, on recalcule le prix et on vérifie la disponibilité.
+   */
+  async update(
+    id: string,
+    userId: string,
+    updateBookingDto: UpdateBookingDto,
+  ): Promise<Booking> {
+    const supabase = this.supabaseService.getClient();
+
+    // Récupérer la réservation existante
+    const { data: booking, error: fetchError } = await supabase
+      .from("bookings")
+      .select("*, room:rooms(base_price, capacity_adults, capacity_children)")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !booking) {
+      throw new NotFoundException("Réservation non trouvée");
+    }
+
+    if (booking.user_id !== userId) {
+      throw new ForbiddenException("Accès non autorisé");
+    }
+
+    // Seules les réservations pending_payment ou confirmed sont modifiables
+    if (!["pending_payment", "confirmed"].includes(booking.status)) {
+      throw new BadRequestException(
+        "Seules les réservations en attente ou confirmées peuvent être modifiées",
+      );
+    }
+
+    // Vérifier que la modification se fait au moins 24h avant le check-in actuel
+    const currentCheckIn = new Date(booking.check_in);
+    const now = new Date();
+    const hoursUntilCheckIn =
+      (currentCheckIn.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursUntilCheckIn < 24) {
+      throw new BadRequestException(
+        "Les modifications doivent être effectuées au moins 24h avant l'arrivée",
+      );
+    }
+
+    const updateData: Record<string, any> = {};
+
+    // Mise à jour des dates si fournies
+    const newCheckIn = updateBookingDto.check_in
+      ? new Date(updateBookingDto.check_in)
+      : new Date(booking.check_in);
+    const newCheckOut = updateBookingDto.check_out
+      ? new Date(updateBookingDto.check_out)
+      : new Date(booking.check_out);
+
+    const datesChanged =
+      updateBookingDto.check_in !== undefined ||
+      updateBookingDto.check_out !== undefined;
+
+    if (datesChanged) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (newCheckIn < today) {
+        throw new BadRequestException(
+          "La date d'arrivée ne peut pas être dans le passé",
+        );
+      }
+
+      if (newCheckOut <= newCheckIn) {
+        throw new BadRequestException(
+          "La date de départ doit être après la date d'arrivée",
+        );
+      }
+
+      const numberOfNights = Math.ceil(
+        (newCheckOut.getTime() - newCheckIn.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      if (numberOfNights > 90) {
+        throw new BadRequestException(
+          "La durée maximale de réservation est de 90 nuits",
+        );
+      }
+
+      // Vérifier la disponibilité pour les nouvelles dates (exclure la réservation actuelle)
+      await this.expireLocks();
+
+      const { data: conflicts, error: conflictError } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("room_id", booking.room_id)
+        .neq("id", id)
+        .in("status", ["pending_payment", "confirmed", "checked_in"])
+        .lt("check_in", updateBookingDto.check_out || booking.check_out)
+        .gt("check_out", updateBookingDto.check_in || booking.check_in);
+
+      if (conflictError) {
+        throw new BadRequestException(
+          "Erreur lors de la vérification de disponibilité",
+        );
+      }
+
+      if (conflicts && conflicts.length > 0) {
+        throw new ConflictException(
+          "Cette chambre n'est pas disponible pour les nouvelles dates",
+        );
+      }
+
+      // Recalculer le prix
+      const roomPricePerNight = booking.room.base_price;
+      const subtotal = roomPricePerNight * numberOfNights;
+      const taxesTotal = subtotal * 0.1;
+      const totalPrice = subtotal + taxesTotal;
+
+      updateData.check_in = updateBookingDto.check_in || booking.check_in;
+      updateData.check_out = updateBookingDto.check_out || booking.check_out;
+      updateData.total_nights = numberOfNights;
+      updateData.room_price_per_night = roomPricePerNight;
+      updateData.taxes_total = taxesTotal;
+      updateData.total_price = totalPrice;
+    }
+
+    // Mise à jour des voyageurs si fournis
+    const newAdults = updateBookingDto.adults ?? booking.adults;
+    const newChildren = updateBookingDto.children ?? booking.children;
+    const newInfants = updateBookingDto.infants ?? booking.infants;
+    const totalGuests = newAdults + newChildren + newInfants;
+
+    if (
+      updateBookingDto.adults !== undefined ||
+      updateBookingDto.children !== undefined ||
+      updateBookingDto.infants !== undefined
+    ) {
+      const totalCapacity =
+        booking.room.capacity_adults + (booking.room.capacity_children || 0);
+      if (totalGuests > totalCapacity) {
+        throw new BadRequestException(
+          `Cette chambre ne peut accueillir que ${totalCapacity} personne(s)`,
+        );
+      }
+
+      updateData.adults = newAdults;
+      updateData.children = newChildren;
+      updateData.infants = newInfants;
+      updateData.guests = totalGuests;
+    }
+
+    // Mise à jour des options
+    if (updateBookingDto.special_requests !== undefined) {
+      updateData.special_requests = updateBookingDto.special_requests;
+    }
+    if (updateBookingDto.arrival_time !== undefined) {
+      updateData.arrival_time = updateBookingDto.arrival_time;
+    }
+    if (updateBookingDto.early_checkin !== undefined) {
+      updateData.early_checkin = updateBookingDto.early_checkin;
+    }
+    if (updateBookingDto.late_checkout !== undefined) {
+      updateData.late_checkout = updateBookingDto.late_checkout;
+    }
+
+    // Vérifier qu'il y a bien des modifications
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestException("Aucune modification à appliquer");
+    }
+
+    updateData.updated_at = new Date().toISOString();
+
+    // Appliquer la modification
+    const { data: updatedBooking, error: updateError } = await supabase
+      .from("bookings")
+      .update(updateData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateError || !updatedBooking) {
+      console.error("Update booking error:", updateError);
+      throw new BadRequestException(
+        "Erreur lors de la modification de la réservation",
+      );
+    }
+
+    return updatedBooking;
+  }
+
+  /**
    * Confirmer une réservation en attente de paiement.
    * Vérifie que le verrou n'a pas expiré.
    */
@@ -393,6 +582,58 @@ export class BookingsService {
       .order("created_at", { ascending: false });
 
     if (error) {
+      throw new BadRequestException(
+        "Erreur lors de la récupération des réservations",
+      );
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Récupérer toutes les réservations d'un hôtel (pour le hotel owner).
+   * Vérifie que l'utilisateur est bien le propriétaire de l'hôtel.
+   */
+  async findAllByHotel(
+    hotelId: string,
+    userId: string,
+    userRole: string,
+  ): Promise<Booking[]> {
+    const supabase = this.supabaseService.getClient();
+
+    // Vérifier que l'hôtel existe et appartient à l'utilisateur (sauf admin)
+    if (userRole !== "admin") {
+      const { data: hotel, error: hotelError } = await supabase
+        .from("hotels")
+        .select("id, owner_id")
+        .eq("id", hotelId)
+        .single();
+
+      if (hotelError || !hotel) {
+        throw new NotFoundException("Hôtel non trouvé");
+      }
+
+      if (hotel.owner_id !== userId) {
+        throw new ForbiddenException(
+          "Vous n'êtes pas le propriétaire de cet hôtel",
+        );
+      }
+    }
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .select(
+        `
+        *,
+        room:rooms(room_number, room_type, base_price, view_type),
+        user:users(email, first_name, last_name, phone)
+      `,
+      )
+      .eq("hotel_id", hotelId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching hotel bookings:", error);
       throw new BadRequestException(
         "Erreur lors de la récupération des réservations",
       );

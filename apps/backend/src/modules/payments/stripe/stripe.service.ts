@@ -33,6 +33,7 @@ export class StripeService implements OnModuleInit {
       currency,
       metadata,
       automatic_payment_methods: { enabled: true },
+      capture_method: "manual", // Autorisation immédiate, capture différée
     });
 
     return {
@@ -48,5 +49,30 @@ export class StripeService implements OnModuleInit {
       throw new Error("Stripe non configuré");
     }
     return this.stripe.paymentIntents.retrieve(paymentIntentId);
+  }
+
+  /**
+   * Capturer un paiement autorisé (capture différée).
+   * Appelé le jour du check-in ou manuellement par l'hotel owner.
+   */
+  async capturePaymentIntent(
+    paymentIntentId: string,
+  ): Promise<Stripe.PaymentIntent> {
+    if (!this.stripe) {
+      throw new Error("Stripe non configuré");
+    }
+    return this.stripe.paymentIntents.capture(paymentIntentId);
+  }
+
+  /**
+   * Annuler un paiement autorisé (libérer l'autorisation).
+   */
+  async cancelPaymentIntent(
+    paymentIntentId: string,
+  ): Promise<Stripe.PaymentIntent> {
+    if (!this.stripe) {
+      throw new Error("Stripe non configuré");
+    }
+    return this.stripe.paymentIntents.cancel(paymentIntentId);
   }
 }
