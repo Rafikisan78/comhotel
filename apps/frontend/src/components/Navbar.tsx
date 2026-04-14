@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from './ui';
+import apiClient from '@/lib/api-client';
+
+interface OwnerHotel {
+  id: string;
+  name: string;
+}
 
 export default function Navbar() {
   const router = useRouter();
@@ -11,6 +17,8 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [ownerHotels, setOwnerHotels] = useState<OwnerHotel[]>([]);
+  const [showHotelDropdown, setShowHotelDropdown] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -21,6 +29,13 @@ export default function Navbar() {
     const role = localStorage.getItem('user_role');
     setIsLoggedIn(!!token);
     setUserRole(role);
+
+    // Charger les hôtels du propriétaire pour le menu réservations
+    if (token && (role === 'hotel_owner' || role === 'admin')) {
+      apiClient.get('/hotels/my-hotels')
+        .then((res) => setOwnerHotels(res.data || []))
+        .catch(() => setOwnerHotels([]));
+    }
   };
 
   const handleLogout = () => {
@@ -133,6 +148,39 @@ export default function Navbar() {
                     >
                       Gestion Hôtels
                     </Link>
+
+                    {/* Menu Réservations hôtel */}
+                    {ownerHotels.length > 0 && (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowHotelDropdown(!showHotelDropdown)}
+                          onBlur={() => setTimeout(() => setShowHotelDropdown(false), 200)}
+                          className={`px-3 py-2 rounded-md font-medium transition-colors touch-target ${
+                            pathname?.includes('/bookings')  && pathname?.includes('/admin')
+                              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                              : 'text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          Réservations ▾
+                        </button>
+                        {showHotelDropdown && (
+                          <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 py-1">
+                            {ownerHotels.map((h) => (
+                              <button
+                                key={h.id}
+                                onClick={() => {
+                                  setShowHotelDropdown(false);
+                                  router.push(`/admin/hotels/${h.id}/bookings`);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                {h.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -234,6 +282,25 @@ export default function Navbar() {
                       >
                         Gestion Hôtels
                       </Link>
+
+                      {/* Réservations par hôtel — mobile */}
+                      {ownerHotels.length > 0 && (
+                        <div className="pl-4 space-y-1">
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3">
+                            Réservations
+                          </span>
+                          {ownerHotels.map((h) => (
+                            <Link
+                              key={h.id}
+                              href={`/admin/hotels/${h.id}/bookings`}
+                              className={navLinkClass(`/admin/hotels/${h.id}/bookings`)}
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              {h.name}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
 
