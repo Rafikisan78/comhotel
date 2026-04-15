@@ -172,6 +172,62 @@ export class UsersService {
     return userWithoutPassword as User;
   }
 
+  /**
+   * Créer un utilisateur via OAuth (sans mot de passe).
+   * Utilisé pour Google OAuth2.
+   */
+  async createOAuthUser(oauthData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+  }): Promise<User> {
+    const normalizedEmail = oauthData.email.toLowerCase().trim();
+
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await this.findByEmail(normalizedEmail);
+    if (existingUser) {
+      throw new ConflictException("Un utilisateur avec cet email existe déjà");
+    }
+
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from("users")
+      .insert({
+        email: normalizedEmail,
+        password_hash: null,
+        first_name: oauthData.firstName,
+        last_name: oauthData.lastName,
+        avatar_url: oauthData.avatarUrl || null,
+        role: UserRole.GUEST,
+        email_confirmed: true, // Email vérifié par Google
+        is_active: true,
+        failed_login_attempts: 0,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (
+        error.code === "23505" ||
+        error.message.includes("duplicate") ||
+        error.message.includes("unique")
+      ) {
+        throw new ConflictException(
+          "Un utilisateur avec cet email existe déjà",
+        );
+      }
+      throw new BadRequestException(
+        `Erreur lors de la création de l'utilisateur OAuth: ${error.message}`,
+      );
+    }
+
+    const user = this.mapRowToUser(data);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _pw, ...userWithoutPassword } = user;
+    return userWithoutPassword as User;
+  }
+
   async findAll(): Promise<User[]> {
     const supabase = this.supabaseService.getClient();
     const { data, error } = await supabase.from("users").select("*");

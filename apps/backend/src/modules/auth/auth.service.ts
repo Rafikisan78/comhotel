@@ -71,6 +71,53 @@ export class AuthService {
     };
   }
 
+  /**
+   * Valider ou créer un utilisateur OAuth (Google).
+   * Si l'utilisateur existe déjà (même email), on le connecte.
+   * Sinon, on crée un nouveau compte sans mot de passe.
+   */
+  async validateOAuthUser(oauthData: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string | null;
+    googleId: string;
+  }) {
+    const normalizedEmail = oauthData.email.toLowerCase().trim();
+
+    // Chercher un utilisateur existant avec cet email
+    let user = await this.usersService.findByEmail(normalizedEmail);
+
+    if (user) {
+      // L'utilisateur existe déjà — on le connecte directement
+      // Mettre à jour l'avatar si absent
+      if (!user.avatarUrl && oauthData.avatarUrl) {
+        await this.usersService.update(user.id, {
+          avatarUrl: oauthData.avatarUrl,
+        } as any);
+      }
+    } else {
+      // Créer un nouvel utilisateur OAuth (sans mot de passe)
+      user = await this.usersService.createOAuthUser({
+        email: normalizedEmail,
+        firstName: oauthData.firstName,
+        lastName: oauthData.lastName,
+        avatarUrl: oauthData.avatarUrl || undefined,
+      });
+    }
+
+    const accessToken = this.generateToken(user.id, user.email, user.role);
+
+    // Exclure le mot de passe
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _password, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      accessToken,
+    };
+  }
+
   private generateToken(userId: string, email: string, role: string): string {
     return this.jwtService.sign({
       sub: userId,
