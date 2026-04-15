@@ -53,6 +53,24 @@ export class PaymentsController {
   }
 
   /**
+   * POST /payments/create-supplement - Créer un PaymentIntent pour un supplément
+   * (différence de prix après modification de réservation)
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post("create-supplement")
+  createSupplementPayment(
+    @Request() req: any,
+    @Body("bookingId") bookingId: string,
+    @Body("amount") amount: number,
+  ) {
+    return this.paymentsService.createSupplementPayment(
+      bookingId,
+      req.user.userId || req.user.sub,
+      amount,
+    );
+  }
+
+  /**
    * PATCH /payments/:bookingId/capture - Capturer un paiement autorisé
    * Réservé au hotel_owner ou admin
    */

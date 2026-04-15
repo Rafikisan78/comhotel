@@ -102,9 +102,16 @@ export class PaymentsService {
         const paymentIntent = await this.stripeService.retrievePaymentIntent(
           booking.payment_id,
         );
-        if (paymentIntent.status !== "succeeded") {
+        // Avec capture_method: 'manual', le statut après confirmation client
+        // est 'requires_capture' (pas 'succeeded'). Les deux sont valides.
+        if (
+          paymentIntent.status !== "succeeded" &&
+          paymentIntent.status !== "requires_capture"
+        ) {
           throw new BadRequestException(
-            "Le paiement n'a pas été confirmé par Stripe",
+            "Le paiement n'a pas été confirmé par Stripe (statut: " +
+              paymentIntent.status +
+              ")",
           );
         }
       } catch (err) {
@@ -177,6 +184,62 @@ export class PaymentsService {
     }
 
     return confirmed;
+  }
+
+  /**
+   * Créer un PaymentIntent pour un supplément (différence de prix après modification).
+   * Le montant est validé côté serveur.
+   */
+  async createSupplementPayment(
+    bookingId: string,
+    userId: string,
+    amount: number,
+  ) {
+    const supabase = this.supabaseService.getClient();
+
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .select("id, user_id, status, booking_reference, hotel_id, total_price")
+      .eq("id", bookingId)
+      .single();
+
+    if (error || !booking) {
+      throw new NotFoundException("Réservation non trouvée");
+    }
+
+    if (booking.user_id !== userId) {
+      throw new BadRequestException("Accès non autorisé");
+    }
+
+    if (!["confirmed", "pending_payment"].includes(booking.status)) {
+      throw new BadRequestException(
+        "Cette réservation ne peut pas recevoir de supplément",
+      );
+    }
+
+    if (amount < 0.5) {
+      throw new BadRequestException(
+        "Le montant minimum pour un paiement en ligne est de 0,50€",
+      );
+    }
+
+    const paymentIntent = await this.stripeService.createPaymentIntent(
+      amount,
+      "eur",
+      {
+        booking_id: booking.id,
+        booking_reference: booking.booking_reference,
+        user_id: userId,
+        type: "supplement",
+      },
+    );
+
+    return {
+      clientSecret: paymentIntent.clientSecret,
+      paymentIntentId: paymentIntent.id,
+      amount,
+      bookingReference: booking.booking_reference,
+    };
   }
 
   /**

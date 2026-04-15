@@ -67,6 +67,15 @@ export default function MyBookingsPage() {
   const [paymentStep, setPaymentStep] = useState<'choice' | 'stripe'>('choice');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [supplementInfo, setSupplementInfo] = useState<{
+    bookingId: string;
+    amount: number;
+    oldPrice: number;
+    newPrice: number;
+  } | null>(null);
+  const [supplementStep, setSupplementStep] = useState<'confirm' | 'choice' | 'stripe'>('confirm');
+  const [supplementSecret, setSupplementSecret] = useState<string | null>(null);
+  const [supplementLoading, setSupplementLoading] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -237,10 +246,28 @@ export default function MyBookingsPage() {
         return;
       }
 
-      await apiClient.patch(`/bookings/${editingBooking.id}`, payload);
-      alert('Reservation modifiee avec succes');
+      const res = await apiClient.patch(`/bookings/${editingBooking.id}`, payload);
+      const updatedBooking = res.data;
+      const oldPrice = editingBooking.total_price;
+      const newPrice = updatedBooking.total_price;
+      const difference = Math.round((newPrice - oldPrice) * 100) / 100;
+
       setEditingBooking(null);
-      fetchBookings();
+
+      if (difference > 0.49) {
+        // Prix augmente — proposer de payer la difference
+        setSupplementInfo({
+          bookingId: updatedBooking.id,
+          amount: difference,
+          oldPrice,
+          newPrice,
+        });
+        setSupplementStep('confirm');
+        setSupplementSecret(null);
+      } else {
+        alert('Reservation modifiee avec succes');
+        fetchBookings();
+      }
     } catch (err: any) {
       alert(err.response?.data?.message || 'Erreur lors de la modification');
     } finally {
@@ -300,6 +327,41 @@ export default function MyBookingsPage() {
     } finally {
       setPaymentLoading(false);
     }
+  };
+
+  const handleSupplementStripe = async () => {
+    if (!supplementInfo) return;
+    try {
+      setSupplementLoading(true);
+      const res = await apiClient.post('/payments/create-supplement', {
+        bookingId: supplementInfo.bookingId,
+        amount: supplementInfo.amount,
+      });
+      setSupplementSecret(res.data.clientSecret);
+      setSupplementStep('stripe');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erreur lors de la creation du paiement');
+    } finally {
+      setSupplementLoading(false);
+    }
+  };
+
+  const handleSupplementStripeSuccess = async () => {
+    alert('Supplement paye avec succes ! Votre reservation est mise a jour.');
+    setSupplementInfo(null);
+    fetchBookings();
+  };
+
+  const handleSupplementOnSite = () => {
+    alert('Vous paierez le supplement de ' + supplementInfo?.amount.toFixed(2) + '€ sur place.');
+    setSupplementInfo(null);
+    fetchBookings();
+  };
+
+  const handleSupplementDecline = () => {
+    alert('La modification a ete appliquee. Le supplement sera a regler ulterieurement.');
+    setSupplementInfo(null);
+    fetchBookings();
   };
 
   const filteredBookings = bookings.filter((booking) => {
@@ -615,6 +677,91 @@ export default function MyBookingsPage() {
             )}
 
             {paymentStep === 'stripe' && !clientSecret && (
+              <div className="text-center py-4">
+                <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+                <p className="text-sm text-gray-500 mt-2">Initialisation du paiement...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de supplement apres modification */}
+      {supplementInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                Supplement de prix
+              </h2>
+              <button
+                onClick={handleSupplementDecline}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            {supplementStep === 'confirm' && (
+              <>
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-gray-700 mb-2">
+                    Suite a votre modification, le prix a ete recalcule :
+                  </p>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Ancien prix :</span>
+                    <span className="text-gray-900">{supplementInfo.oldPrice.toFixed(2)}&euro;</span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Nouveau prix :</span>
+                    <span className="text-gray-900">{supplementInfo.newPrice.toFixed(2)}&euro;</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold mt-2 pt-2 border-t border-yellow-300">
+                    <span className="text-gray-900">Supplement a payer :</span>
+                    <span className="text-orange-600">{supplementInfo.amount.toFixed(2)}&euro;</span>
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-600 mb-4">
+                  Souhaitez-vous regler ce supplement maintenant ?
+                </p>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => setSupplementStep('choice')}
+                    className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium"
+                  >
+                    Payer le supplement ({supplementInfo.amount.toFixed(2)}&euro;)
+                  </button>
+                  <button
+                    onClick={handleSupplementDecline}
+                    className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition text-sm"
+                  >
+                    Plus tard
+                  </button>
+                </div>
+              </>
+            )}
+
+            {supplementStep === 'choice' && (
+              <PaymentMethodChoice
+                onChooseStripe={handleSupplementStripe}
+                onChooseOnSite={handleSupplementOnSite}
+                loading={supplementLoading}
+                disabled={false}
+              />
+            )}
+
+            {supplementStep === 'stripe' && supplementSecret && (
+              <StripePaymentForm
+                clientSecret={supplementSecret}
+                amount={supplementInfo.amount}
+                onSuccess={handleSupplementStripeSuccess}
+                onError={(msg) => alert(msg)}
+              />
+            )}
+
+            {supplementStep === 'stripe' && !supplementSecret && (
               <div className="text-center py-4">
                 <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
                 <p className="text-sm text-gray-500 mt-2">Initialisation du paiement...</p>
