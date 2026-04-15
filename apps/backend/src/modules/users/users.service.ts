@@ -326,6 +326,8 @@ export class UsersService {
       updateData.last_name = updateUserDto.lastName;
     if (updateUserDto.phone !== undefined)
       updateData.phone = updateUserDto.phone;
+    if (updateUserDto.avatarUrl !== undefined)
+      updateData.avatar_url = updateUserDto.avatarUrl;
 
     // Si aucun champ à mettre à jour
     if (Object.keys(updateData).length === 0) {

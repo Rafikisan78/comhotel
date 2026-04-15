@@ -94,7 +94,7 @@ export class AuthService {
       if (!user.avatarUrl && oauthData.avatarUrl) {
         await this.usersService.update(user.id, {
           avatarUrl: oauthData.avatarUrl,
-        } as any);
+        });
       }
     } else {
       // Créer un nouvel utilisateur OAuth (sans mot de passe)

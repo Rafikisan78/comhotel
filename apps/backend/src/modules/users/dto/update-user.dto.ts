@@ -5,6 +5,7 @@ import {
   Matches,
   IsEmail,
   MinLength,
+  IsUrl,
 } from "class-validator";
 
 export class UpdateUserDto {
@@ -50,4 +51,9 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(20)
   phone?: string;
+
+  @IsOptional()
+  @IsUrl()
+  @MaxLength(500)
+  avatarUrl?: string;
 }
