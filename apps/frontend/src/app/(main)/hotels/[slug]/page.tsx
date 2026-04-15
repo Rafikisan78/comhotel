@@ -6,6 +6,7 @@ import apiClient from '@/lib/api-client';
 import { getSupabase } from '@/lib/supabase';
 import PaymentMethodChoice from '@/components/payment/PaymentMethodChoice';
 import StripePaymentForm from '@/components/payment/StripePaymentForm';
+import Modal from '@/components/ui/Modal';
 
 // Interface pour l'utilisateur connecté
 interface User {
@@ -97,6 +98,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
   const [error, setError] = useState('');
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -531,7 +533,7 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
 
   const openBookingModal = (room: Room) => {
     if (!isLoggedIn) {
-      router.push('/login');
+      setShowAuthModal(true);
       return;
     }
     setSelectedRoom(room);
@@ -1329,6 +1331,35 @@ export default function HotelDetailPage({ params }: { params: { slug: string } }
           </div>
         )}
       </div>
+
+      {/* Modal d'authentification requise */}
+      <Modal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        title="Connexion requise"
+        size="sm"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <button
+              className="btn btn-secondary"
+              onClick={() => { setShowAuthModal(false); router.push('/login'); }}
+            >
+              Se connecter
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => { setShowAuthModal(false); router.push('/register'); }}
+            >
+              S&apos;inscrire
+            </button>
+          </div>
+        }
+      >
+        <p className="text-gray-600">
+          Vous devez être connecté pour effectuer une réservation.
+          Créez un compte gratuitement ou connectez-vous pour continuer.
+        </p>
+      </Modal>
 
       {/* Modal de réservation */}
       {showBookingModal && selectedRoom && (
