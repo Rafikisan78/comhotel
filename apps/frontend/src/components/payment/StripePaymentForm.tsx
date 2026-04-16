@@ -79,6 +79,7 @@ function CheckoutForm({
   const [cardError, setCardError] = useState<string | null>(null)
 
   const isNewCard = selectedMethod === 'new'
+  const [cardReady, setCardReady] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -220,6 +221,7 @@ function CheckoutForm({
             <div className="rounded-md border border-gray-300 bg-blue-50 px-4 py-3 focus-within:border-blue-500 transition">
               <CardElement
                 options={CARD_ELEMENT_OPTIONS}
+                onReady={() => setCardReady(true)}
                 onChange={(e) =>
                   setCardError(e.error ? e.error.message : null)
                 }
@@ -250,7 +252,7 @@ function CheckoutForm({
 
       <button
         type="submit"
-        disabled={!stripe || loading || (isNewCard && !elements)}
+        disabled={!stripe || loading || (isNewCard && !cardReady)}
         className="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
       >
         {loading ? (
@@ -316,7 +318,10 @@ export default function StripePaymentForm({
     <Elements
       stripe={stripePromise}
       options={{
-        clientSecret,
+        // Ne pas passer clientSecret ici : CardElement ne fonctionne pas
+        // en "Payment Intent mode". Le clientSecret est passé directement
+        // à confirmCardPayment() dans le formulaire.
+        locale: 'fr',
         appearance: {
           theme: 'stripe',
           variables: {
@@ -325,7 +330,6 @@ export default function StripePaymentForm({
             colorBackground: '#eff6ff',
           },
         },
-        locale: 'fr',
       }}
     >
       <CheckoutForm
