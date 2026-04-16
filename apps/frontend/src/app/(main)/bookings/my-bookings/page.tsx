@@ -595,12 +595,9 @@ export default function MyBookingsPage() {
                         </a>
                       )}
                       {booking.status === 'pending_payment' && (
-                        <button
-                          onClick={() => openPaymentModal(booking)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
-                        >
-                          Valider le paiement
-                        </button>
+                        <span className="px-3 py-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
+                          ⏳ En attente de validation par l&apos;hôtel
+                        </span>
                       )}
                       {canModifyBooking(booking) && (
                         <button
