@@ -84,6 +84,9 @@ export class UsersService {
       // Préférences JSON
       preferences: row.preferences || {},
 
+      // Stripe
+      stripeCustomerId: row.stripe_customer_id || undefined,
+
       // Timestamps
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),

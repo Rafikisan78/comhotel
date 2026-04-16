@@ -47,6 +47,9 @@ export class User {
   // Préférences JSON
   preferences?: Record<string, any>;
 
+  // Stripe
+  stripeCustomerId?: string;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;

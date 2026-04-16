@@ -6,12 +6,14 @@ import {
 } from "@nestjs/common";
 import { StripeService } from "./stripe/stripe.service";
 import { SupabaseService } from "../../common/database/supabase.service";
+import { UsersService } from "../users/users.service";
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private readonly stripeService: StripeService,
     private readonly supabaseService: SupabaseService,
+    private readonly usersService: UsersService,
   ) {}
 
   async createPaymentIntent(bookingId: string, userId: string) {
@@ -403,5 +405,159 @@ export class PaymentsService {
     }
 
     return cancelledBooking;
+  }
+
+  // ─── Cartes bancaires sauvegardées ─────────────────────────────────────────
+
+  /**
+   * Retourne les cartes sauvegardées de l'utilisateur.
+   */
+  async getSavedCards(userId: string) {
+    const supabase = this.supabaseService.getClient();
+    const { data, error } = await supabase
+      .from("saved_payment_methods")
+      .select("*")
+      .eq("user_id", userId)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) throw new BadRequestException("Erreur lors de la récupération des cartes");
+    return data || [];
+  }
+
+  /**
+   * Sauvegarde une carte après un paiement réussi.
+   * Crée le Customer Stripe si nécessaire, attache la PM et persiste en base.
+   */
+  async saveCard(userId: string, paymentMethodId: string) {
+    const supabase = this.supabaseService.getClient();
+
+    // Récupérer l'utilisateur
+    const user = await this.usersService.findOne(userId);
+    if (!user) throw new NotFoundException("Utilisateur introuvable");
+
+    // Créer ou récupérer le Customer Stripe
+    let stripeCustomerId = user.stripeCustomerId;
+    if (!stripeCustomerId) {
+      stripeCustomerId = await this.stripeService.createOrGetCustomer(
+        userId,
+        user.email,
+      );
+      // Persister le stripe_customer_id sur l'utilisateur
+      await supabase
+        .from("users")
+        .update({ stripe_customer_id: stripeCustomerId })
+        .eq("id", userId);
+    }
+
+    // Attacher la PM au Customer Stripe
+    const pm = await this.stripeService.attachPaymentMethod(
+      stripeCustomerId,
+      paymentMethodId,
+    );
+
+    const card = pm.card!;
+
+    // Vérifier si c'est la première carte (sera la carte par défaut)
+    const { count } = await supabase
+      .from("saved_payment_methods")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+    const isDefault = (count ?? 0) === 0;
+
+    // Persister en base (upsert pour éviter les doublons)
+    const { data, error } = await supabase
+      .from("saved_payment_methods")
+      .upsert(
+        {
+          user_id: userId,
+          stripe_payment_method_id: paymentMethodId,
+          card_brand: card.brand,
+          card_last4: card.last4,
+          card_exp_month: card.exp_month,
+          card_exp_year: card.exp_year,
+          is_default: isDefault,
+        },
+        { onConflict: "user_id,stripe_payment_method_id" },
+      )
+      .select()
+      .single();
+
+    if (error) throw new BadRequestException("Erreur lors de la sauvegarde de la carte");
+    return data;
+  }
+
+  /**
+   * Supprime une carte sauvegardée (Stripe + base).
+   */
+  async deleteSavedCard(userId: string, paymentMethodId: string) {
+    const supabase = this.supabaseService.getClient();
+
+    // Vérifier que la carte appartient bien à l'utilisateur
+    const { data: card } = await supabase
+      .from("saved_payment_methods")
+      .select("id, is_default")
+      .eq("user_id", userId)
+      .eq("stripe_payment_method_id", paymentMethodId)
+      .single();
+
+    if (!card) throw new NotFoundException("Carte introuvable");
+
+    // Détacher de Stripe
+    await this.stripeService.detachPaymentMethod(paymentMethodId);
+
+    // Supprimer de la base
+    await supabase
+      .from("saved_payment_methods")
+      .delete()
+      .eq("user_id", userId)
+      .eq("stripe_payment_method_id", paymentMethodId);
+
+    // Si c'était la carte par défaut, en promouvoir une autre
+    if (card.is_default) {
+      await supabase
+        .from("saved_payment_methods")
+        .update({ is_default: true })
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Définit une carte comme carte par défaut.
+   */
+  async setDefaultCard(userId: string, paymentMethodId: string) {
+    const supabase = this.supabaseService.getClient();
+
+    // Vérifier que la carte appartient bien à l'utilisateur
+    const { data: card } = await supabase
+      .from("saved_payment_methods")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("stripe_payment_method_id", paymentMethodId)
+      .single();
+
+    if (!card) throw new NotFoundException("Carte introuvable");
+
+    // Retirer le flag par défaut sur toutes les cartes de l'utilisateur
+    await supabase
+      .from("saved_payment_methods")
+      .update({ is_default: false })
+      .eq("user_id", userId);
+
+    // Définir la nouvelle carte par défaut
+    const { data, error } = await supabase
+      .from("saved_payment_methods")
+      .update({ is_default: true })
+      .eq("user_id", userId)
+      .eq("stripe_payment_method_id", paymentMethodId)
+      .select()
+      .single();
+
+    if (error) throw new BadRequestException("Erreur lors de la mise à jour");
+    return data;
   }
 }

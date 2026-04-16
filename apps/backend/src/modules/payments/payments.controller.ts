@@ -2,6 +2,8 @@ import {
   Controller,
   Post,
   Patch,
+  Get,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -52,10 +54,6 @@ export class PaymentsController {
     );
   }
 
-  /**
-   * POST /payments/create-supplement - Créer un PaymentIntent pour un supplément
-   * (différence de prix après modification de réservation)
-   */
   @UseGuards(JwtAuthGuard)
   @Post("create-supplement")
   createSupplementPayment(
@@ -70,10 +68,6 @@ export class PaymentsController {
     );
   }
 
-  /**
-   * PATCH /payments/:bookingId/capture - Capturer un paiement autorisé
-   * Réservé au hotel_owner ou admin
-   */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("hotel_owner", "admin")
   @Patch(":bookingId/capture")
@@ -88,10 +82,6 @@ export class PaymentsController {
     );
   }
 
-  /**
-   * PATCH /payments/:bookingId/cancel - Annuler un paiement autorisé
-   * Réservé au hotel_owner ou admin
-   */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("hotel_owner", "admin")
   @Patch(":bookingId/cancel")
@@ -103,6 +93,65 @@ export class PaymentsController {
       bookingId,
       req.user.userId || req.user.sub,
       req.user.role,
+    );
+  }
+
+  // ─── Cartes sauvegardées ──────────────────────────────────────────────────
+
+  /**
+   * GET /payments/saved-cards — Liste les cartes sauvegardées de l'utilisateur
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get("saved-cards")
+  getSavedCards(@Request() req: any) {
+    return this.paymentsService.getSavedCards(
+      req.user.userId || req.user.sub,
+    );
+  }
+
+  /**
+   * POST /payments/save-card — Sauvegarde une carte après paiement réussi
+   * Body: { paymentMethodId: string }
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post("save-card")
+  saveCard(
+    @Request() req: any,
+    @Body("paymentMethodId") paymentMethodId: string,
+  ) {
+    return this.paymentsService.saveCard(
+      req.user.userId || req.user.sub,
+      paymentMethodId,
+    );
+  }
+
+  /**
+   * DELETE /payments/saved-cards/:paymentMethodId — Supprime une carte
+   */
+  @UseGuards(JwtAuthGuard)
+  @Delete("saved-cards/:paymentMethodId")
+  deleteSavedCard(
+    @Request() req: any,
+    @Param("paymentMethodId") paymentMethodId: string,
+  ) {
+    return this.paymentsService.deleteSavedCard(
+      req.user.userId || req.user.sub,
+      paymentMethodId,
+    );
+  }
+
+  /**
+   * PATCH /payments/saved-cards/:paymentMethodId/default — Carte par défaut
+   */
+  @UseGuards(JwtAuthGuard)
+  @Patch("saved-cards/:paymentMethodId/default")
+  setDefaultCard(
+    @Request() req: any,
+    @Param("paymentMethodId") paymentMethodId: string,
+  ) {
+    return this.paymentsService.setDefaultCard(
+      req.user.userId || req.user.sub,
+      paymentMethodId,
     );
   }
 }
